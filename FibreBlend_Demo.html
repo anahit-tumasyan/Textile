@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="FibreBlend - reading cotton/polyester content from a fabric sample.">
+<style>
+  html{color-scheme:light dark}
+  body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Reading a Fabric Blend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#FCFCFB; --panel:#F4F5F3; --panel-2:#EDEFEC; --rule:#DCDFDA;
+  --ink:#1A211F; --ink-2:#48534E; --ink-3:#6E7A74;
+  --cotton:#C07A1E; --poly:#0F6FA6; --live:#A8324A;
+  --good:#2F6B4F; --warn:#8A5A16;
+  --shadow:0 1px 2px rgba(26,33,31,.06), 0 8px 24px -12px rgba(26,33,31,.18);
+  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#121614; --panel:#1A1F1D; --panel-2:#222825; --rule:#2E3633;
+    --ink:#E8EBE8; --ink-2:#A9B3AE; --ink-3:#7C8782;
+    --cotton:#C2882F; --poly:#3E96D4; --live:#D4607A;
+    --good:#6FB08C; --warn:#C99A4E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121614; --panel:#1A1F1D; --panel-2:#222825; --rule:#2E3633;
+  --ink:#E8EBE8; --ink-2:#A9B3AE; --ink-3:#7C8782;
+  --cotton:#C2882F; --poly:#3E96D4; --live:#D4607A;
+  --good:#6FB08C; --warn:#C99A4E;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.col{max-width:660px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,6vw,68px);line-height:1.02;letter-spacing:-.015em}
+h2{font-family:var(--serif);font-weight:400;font-size:clamp(27px,3.4vw,38px);line-height:1.1;letter-spacing:-.01em}
+h3{font-size:15px;font-weight:600;letter-spacing:.005em}
+p{margin:0}
+a{color:var(--live)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3)}
+.lede{font-size:19.5px;line-height:1.55;color:var(--ink-2)}
+.small{font-size:14px;color:var(--ink-2)}
+.tiny{font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header.top{padding:74px 0 46px;border-bottom:1px solid var(--rule)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;padding:5px 11px;
+  border:1px solid var(--rule);border-radius:100px;color:var(--ink-2);background:var(--panel)}
+.chip.live{border-color:color-mix(in srgb,var(--good) 40%,var(--rule));color:var(--good)}
+.chip.caution{border-color:color-mix(in srgb,var(--warn) 40%,var(--rule));color:var(--warn)}
+
+section{padding:60px 0;border-bottom:1px solid var(--rule)}
+section:last-of-type{border-bottom:0}
+.sec-head{display:flex;flex-direction:column;gap:13px;margin-bottom:34px}
+
+/* ---- demo ---- */
+.demo{background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+  padding:30px;box-shadow:var(--shadow)}
+.demo-grid{display:grid;grid-template-columns:1fr 300px;gap:34px;align-items:start}
+@media(max-width:840px){.demo-grid{grid-template-columns:1fr}}
+
+.sliderrow{display:flex;flex-direction:column;gap:11px;margin-bottom:26px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;
+  background:transparent;cursor:pointer;margin:0}
+input[type=range]:focus-visible{outline:2px solid var(--live);outline-offset:3px}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:100px;
+  background:linear-gradient(90deg,var(--poly),var(--cotton))}
+input[type=range]::-moz-range-track{height:8px;border-radius:100px;
+  background:linear-gradient(90deg,var(--poly),var(--cotton))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+  margin-top:-7px;border-radius:50%;background:var(--ground);
+  border:3px solid var(--ink);box-shadow:var(--shadow)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;
+  background:var(--ground);border:3px solid var(--ink);box-shadow:var(--shadow)}
+
+.blendbar{display:flex;height:11px;border-radius:2px;overflow:hidden;gap:2px}
+.blendbar i{display:block}
+.bb-cot{background:var(--cotton)}
+.bb-pol{background:var(--poly)}
+.blendkey{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+
+.readout{background:var(--ground);border:1px solid var(--rule);border-radius:3px;padding:22px}
+.readout + .readout{margin-top:14px}
+.ro-label{font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3)}
+.ro-big{font-family:var(--mono);font-weight:500;font-size:40px;line-height:1.05;
+  letter-spacing:-.02em;margin-top:8px;font-variant-numeric:tabular-nums}
+.ro-sub{font-size:13.5px;color:var(--ink-2);margin-top:5px}
+.err-good{color:var(--good)}
+.err-mid{color:var(--warn)}
+
+figure{margin:0}
+.chartbox{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:24px 22px 18px}
+.chartbox.plain{background:transparent;border:0;padding:0}
+figcaption{margin-top:14px;font-size:13.5px;color:var(--ink-2);max-width:62ch}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px}
+.lg{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)}
+.sw{width:15px;height:3px;border-radius:2px;flex:none}
+.axlab{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+.gridline{stroke:var(--rule);stroke-width:1}
+
+.tip{position:fixed;pointer-events:none;z-index:60;background:var(--ink);color:var(--ground);
+  font-family:var(--mono);font-size:11.5px;padding:6px 9px;border-radius:3px;
+  opacity:0;transition:opacity .1s;white-space:nowrap}
+
+/* ---- stats & table ---- */
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.stat{background:var(--ground);padding:20px 18px}
+.stat .v{font-family:var(--mono);font-size:29px;font-weight:500;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.stat .k{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.35}
+
+table{width:100%;border-collapse:collapse;font-size:14px}
+.tablewrap{overflow-x:auto}
+th{text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-3);font-weight:400;
+  padding:0 14px 9px 0;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:11px 14px 11px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.best td{background:color-mix(in srgb,var(--cotton) 9%,transparent)}
+tr.best td:first-child{box-shadow:inset 3px 0 0 var(--cotton)}
+tr.best td:first-child{padding-left:12px}
+
+.note{border-left:2px solid var(--warn);padding:3px 0 3px 18px;
+  display:flex;flex-direction:column;gap:13px}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+@media(max-width:760px){.cols2{grid-template-columns:1fr}}
+
+ol.steps{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:2px;
+  counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:16px;
+  padding:17px 0;border-top:1px solid var(--rule);align-items:start}
+ol.steps li::before{content:counter(s);font-family:var(--mono);font-size:12px;
+  color:var(--ink-3);padding-top:3px}
+ol.steps b{font-weight:600}
+ol.steps p{color:var(--ink-2);font-size:14.5px;margin-top:3px}
+
+footer{padding:44px 0 70px;color:var(--ink-3);font-size:13px;display:flex;
+  flex-direction:column;gap:7px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow">FibreBlend &middot; early prototype</p>
+  <h1>What is this fabric<br>actually made of?</h1>
+  <p class="lede col" style="margin-top:22px">
+    Clothing labels are often wrong, and you cannot recycle a garment until you know what is
+    in it. This prototype shines a special light on a scrap of fabric and reads back the
+    answer as a percentage &mdash; 62% cotton, 38% polyester &mdash; in about a second.
+  </p>
+  <p class="small col" style="margin-top:18px">Scroll down and drag the slider to try it.</p>
+  <div class="chips">
+    <span class="chip live">It works today</span>
+    <span class="chip caution">Tested on realistic imitation fabric, not yet real cloth</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head col">
+    <p class="eyebrow">The problem</p>
+    <h2>Mixed fabrics are the part nobody has solved</h2>
+  </div>
+  <div class="col" style="display:flex;flex-direction:column;gap:16px">
+    <p>About <b>92 million tonnes</b> of textile waste is thrown away every year. Less than
+    <b>1%</b> of it becomes new clothing.</p>
+    <p>The reason is simple: a recycling plant has to know what a garment is made of before it
+    can process it, and it cannot trust the label. It has to measure.</p>
+    <p>Measuring <i>pure</i> cotton or <i>pure</i> polyester is already routine. <b>Mixtures are
+    not.</b> A shirt that is 60% cotton needs a different process than one that is 80% cotton,
+    and right now there is no cheap, fast way to tell those apart. <b>That is the gap this
+    prototype is aimed at.</b></p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Try it</p>
+    <h2>Pick a fabric. See what it works out.</h2>
+    <p class="small col">Drag the slider to choose a fabric to test. The left panel is the
+    reading the sensor takes. The right panel is the prototype&rsquo;s answer &mdash; it is
+    never shown the correct figure.</p>
+  </div>
+
+  <div class="demo">
+    <div class="sliderrow">
+      <div class="blendkey">
+        <span>The fabric you are testing</span>
+        <span id="mixlabel" class="mono"></span>
+      </div>
+      <input type="range" id="slider" min="0" max="100" step="2" value="62"
+             aria-label="Cotton percentage of the test fabric">
+      <div class="blendbar" aria-hidden="true">
+        <i class="bb-cot" id="bbc"></i><i class="bb-pol" id="bbp"></i>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <figure>
+        <div class="legend">
+          <span class="lg"><i class="sw" style="background:var(--live)"></i>Your fabric</span>
+          <span class="lg"><i class="sw" style="background:var(--cotton)"></i>Pure cotton</span>
+          <span class="lg"><i class="sw" style="background:var(--poly)"></i>Pure polyester</span>
+        </div>
+        <svg id="spec" viewBox="0 0 640 268" role="img"
+             aria-label="The sensor reading for the selected fabric, shown against pure cotton and pure polyester"></svg>
+        <figcaption>Think of this wiggly line as the fabric&rsquo;s fingerprint. Cotton and
+        polyester each have their own, and a mixture sits somewhere between the two. Working
+        out exactly where is the whole job.</figcaption>
+      </figure>
+
+      <div>
+        <div class="readout">
+          <p class="ro-label">The prototype&rsquo;s answer</p>
+          <p class="ro-big" id="predbig">&mdash;</p>
+          <p class="ro-sub" id="predsub"></p>
+        </div>
+        <div class="readout">
+          <p class="ro-label">How close it got</p>
+          <p class="ro-big" id="errbig" style="font-size:30px">&mdash;</p>
+          <p class="ro-sub" id="errsub"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <p class="eyebrow">How it works</p>
+    <h2>Three steps, no laboratory</h2>
+  </div>
+  <ol class="steps col">
+    <li><div><b>Shine a light on the fabric</b>
+      <p>Not ordinary light &mdash; a kind just beyond what our eyes can see. Every material
+      soaks up this light in its own pattern, which is where the fingerprint comes from.</p></div></li>
+    <li><div><b>Tidy up the reading</b>
+      <p>Real scraps are creased, dusty and dyed, and all of that smudges the reading. Two
+      standard corrections wipe the smudges off and leave the part that depends on the
+      material itself.</p></div></li>
+    <li><div><b>Work out the mix</b>
+      <p>Software that has studied thousands of fabrics with known contents turns the tidied
+      fingerprint into a percentage. This is the difficult step, and it is the one being
+      measured here.</p></div></li>
+  </ol>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Why it is difficult</p>
+    <h2>The two fingerprints overlap</h2>
+  </div>
+  <div class="cols2">
+    <figure>
+      <div class="legend">
+        <span class="lg"><i class="sw" style="background:var(--cotton)"></i>Cotton</span>
+        <span class="lg"><i class="sw" style="background:var(--poly)"></i>Polyester</span>
+      </div>
+      <svg id="ends" viewBox="0 0 620 250" role="img"
+           aria-label="Fingerprints of pure cotton and pure polyester, with the overlapping regions shaded"></svg>
+      <figcaption>In the shaded stripes the two fingerprints sit almost on top of one another.
+      There, a mostly-cotton fabric and a mostly-polyester one look nearly identical.</figcaption>
+    </figure>
+    <div style="display:flex;flex-direction:column;gap:16px;padding-top:8px">
+      <p class="small">If cotton and polyester soaked up light in completely different places,
+      this would be simple arithmetic. They do not.</p>
+      <p class="small">So the software cannot just check one spot on the line. It has to weigh
+      up the entire shape at once. That is why getting a <i>percentage</i> is hard, while
+      answering <i>&ldquo;is there any polyester at all?&rdquo;</i> is easy.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <p class="eyebrow">Results</p>
+    <h2>How accurate is it?</h2>
+    <p class="small col">The prototype was tested on 1,500 fabrics it had never seen while
+    learning. Below, &ldquo;3 points out&rdquo; means it guessed 65% when the truth was 62%.</p>
+  </div>
+
+  <div class="statrow" style="margin-bottom:38px">
+    <div class="stat"><p class="v">1.65</p>
+      <p class="k">Points out, on a typical fabric</p></div>
+    <div class="stat"><p class="v">3.38</p>
+      <p class="k">Points out, using the method the industry uses today</p></div>
+    <div class="stat"><p class="v">2&times;</p>
+      <p class="k">More accurate than that existing method</p></div>
+    <div class="stat"><p class="v">6.8</p>
+      <p class="k">Its worst single mistake &mdash; the figure to keep an eye on</p></div>
+  </div>
+
+  <div class="cols2">
+    <figure>
+      <svg id="parity" viewBox="0 0 480 400" role="img"
+           aria-label="The prototype's answer compared with the truth, for 300 fabrics"></svg>
+      <figcaption>Every dot is one fabric. The truth runs left to right, the
+      prototype&rsquo;s answer runs bottom to top. A perfect answer lands on the dotted line,
+      and almost all of them do.</figcaption>
+    </figure>
+    <figure>
+      <h3 style="margin-bottom:16px">Everything we tried, best first</h3>
+      <svg id="bench" viewBox="0 0 480 250" role="img"
+           aria-label="Average error for each method tried, lower is better"></svg>
+      <figcaption>Shorter is better. The improvement comes from two things: tidying the
+      reading up first, and using software that can follow a curve rather than a straight
+      line.</figcaption>
+    </figure>
+  </div>
+
+  <div class="tablewrap" style="margin-top:34px">
+    <table>
+      <thead><tr><th>Method</th><th>Typical miss</th><th>Worst miss</th></tr></thead>
+      <tbody id="benchtable"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <p class="eyebrow">Please read this part</p>
+    <h2>What is proven, and what is not</h2>
+  </div>
+  <div class="note col">
+    <p><b>The fabrics were imitations, not real cloth.</b> They were built from published
+    laboratory measurements of real cotton and real polyester, so they behave realistically
+    &mdash; but no physical scrap has gone through this yet. The accuracy figures will move
+    once real material does.</p>
+    <p><b>Nothing here is a new invention yet.</b> Reading fabric content from light is
+    established work. What this shows is that the whole chain can be built and honestly
+    tested &mdash; and it sets the score that any genuinely new idea now has to beat.</p>
+    <p><b>Why it is still worth backing.</b> It runs end to end today, it puts a hard number
+    on the target (1.65), and the next step is gathering real material rather than writing
+    more software.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head col">
+    <p class="eyebrow">What happens next</p>
+    <h2>Where this goes</h2>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Stage</th><th>Status</th><th>What it involves</th></tr></thead>
+      <tbody>
+        <tr><td><b>Prove the chain works</b></td><td class="num" style="color:var(--good)">Done</td>
+          <td>Build it end to end, measure it honestly, set the target.</td></tr>
+        <tr><td><b>Get real fabric</b></td><td class="num">Next</td>
+          <td>Collect real mixed and dark-dyed scraps with verified contents. This is the bottleneck, and it needs samples, not code.</td></tr>
+        <tr><td><b>Beat the target</b></td><td class="num" style="color:var(--ink-3)">Planned</td>
+          <td>Improve on 1.65 for one specific hard case &mdash; most likely black fabric, which today&rsquo;s sensors handle badly.</td></tr>
+        <tr><td><b>Use a camera instead</b></td><td class="num" style="color:var(--ink-3)">Being designed</td>
+          <td>A second version that reads fabric content from an ordinary photograph rather than a costly sensor. Designed and built, but it has not seen real fabric either.</td></tr>
+        <tr><td><b>Try it on a real sorting line</b></td><td class="num" style="color:var(--ink-3)">Planned</td>
+          <td>Test with a recycling partner on actual waste.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <p>FibreBlend &mdash; early feasibility prototype. Every figure on this page was produced by
+  running the prototype itself; none were typed in by hand.</p>
+</footer>
+</div>
+<div class="tip" id="tip"></div>
+<script id="fb-data" type="application/json">{"wavelengths": [1000.0, 1010.0, 1020.0, 1030.0, 1040.0, 1050.0, 1060.0, 1070.0, 1080.0, 1090.0, 1100.0, 1110.0, 1120.0, 1130.0, 1140.0, 1150.0, 1160.0, 1170.0, 1180.0, 1190.0, 1200.0, 1210.0, 1220.0, 1230.0, 1240.0, 1250.0, 1260.0, 1270.0, 1280.0, 1290.0, 1300.0, 1310.0, 1320.0, 1330.0, 1340.0, 1350.0, 1360.0, 1370.0, 1380.0, 1390.0, 1400.0, 1410.0, 1420.0, 1430.0, 1440.0, 1450.0, 1460.0, 1470.0, 1480.0, 1490.0, 1500.0, 1510.0, 1520.0, 1530.0, 1540.0, 1550.0, 1560.0, 1570.0, 1580.0, 1590.0, 1600.0, 1610.0, 1620.0, 1630.0, 1640.0, 1650.0, 1660.0, 1670.0, 1680.0, 1690.0, 1700.0, 1710.0, 1720.0, 1730.0, 1740.0, 1750.0, 1760.0, 1770.0, 1780.0, 1790.0, 1800.0, 1810.0, 1820.0, 1830.0, 1840.0, 1850.0, 1860.0, 1870.0, 1880.0, 1890.0, 1900.0, 1910.0, 1920.0, 1930.0, 1940.0, 1950.0, 1960.0, 1970.0, 1980.0, 1990.0, 2000.0, 2010.0, 2020.0, 2030.0, 2040.0, 2050.0, 2060.0, 2070.0, 2080.0, 2090.0, 2100.0, 2110.0, 2120.0, 2130.0, 2140.0, 2150.0, 2160.0, 2170.0, 2180.0, 2190.0, 2200.0], "rows": [{"true": 0, "pred": 2.31, "spectrum": [-0.0419, -0.0925, -0.059, -0.0848, -0.067, -0.0398, -0.0528, 0.0322, 0.0928, 0.1646, 0.2396, 0.3145, 0.3261, 0.2629, 0.173, 0.1102, 0.0514, -0.0141, -0.0471, -0.0329, -0.0729, -0.0516, -0.0465, -0.0707, -0.0248, -0.0315, -0.0786, -0.0661, -0.0564, -0.0679, -0.0526, -0.0426, -0.031, 0.0172, 0.0739, 0.1094, 0.231, 0.278, 0.4202, 0.4659, 0.5188, 0.5335, 0.5276, 0.473, 0.3665, 0.298, 0.2427, 0.076, 0.0581, 0.0298, 0.0062, -0.0253, -0.0222, -0.0428, -0.0412, -0.0853, -0.0459, -0.0136, -0.0003, -0.008, 0.0463, 0.1165, 0.2677, 0.4293, 0.5967, 0.7814, 0.8362, 0.8362, 0.7554, 0.5934, 0.4067, 0.2319, 0.1571, 0.0291, 0.0093, -0.0416, -0.0468, -0.0421, -0.0689, -0.0134, -0.0542, -0.0127, 0.0311, 0.0475, 0.0764, 0.1569, 0.2311, 0.3208, 0.3909, 0.446, 0.4145, 0.4073, 0.3533, 0.3073, 0.2037, 0.1662, 0.0298, 0.0317, -0.0043, -0.0185, -0.0009, -0.0397, -0.0219, -0.0071, 0.0287, 0.0745, 0.117, 0.2254, 0.2905, 0.4277, 0.5323, 0.6452, 0.7385, 0.8311, 0.815, 0.8295, 0.7599, 0.6043, 0.5116, 0.4157, 0.2305]}, {"true": 2, "pred": 3.95, "spectrum": [0.024, -0.0069, 0.0038, 0.0075, -0.0184, 0.0119, 0.0109, 0.0602, 0.123, 0.2227, 0.3046, 0.4209, 0.453, 0.4365, 0.3352, 0.2812, 0.1612, 0.0443, 0.0278, 0.0515, -0.0087, 0.0029, -0.0171, 0.0209, -0.0073, -0.0277, 0.0049, 0.0003, -0.0138, 0.0136, 0.002, 0.0142, 0.0769, 0.0581, 0.1351, 0.2365, 0.3012, 0.4119, 0.5027, 0.6114, 0.6638, 0.6914, 0.69, 0.6609, 0.549, 0.4823, 0.4045, 0.2834, 0.1817, 0.1357, 0.1101, 0.0358, 0.0022, 0.0259, 0.051, 0.0023, 0.0272, 0.0036, 0.031, 0.0363, 0.104, 0.2233, 0.4131, 0.6026, 0.8604, 1.0694, 1.152, 1.1057, 0.972, 0.7365, 0.4834, 0.3386, 0.1657, 0.1008, 0.0369, 0.0234, -0.0052, -0.0018, -0.0368, 0.0286, 0.0008, 0.0284, 0.0561, 0.0972, 0.2188, 0.2736, 0.3417, 0.4615, 0.5083, 0.5871, 0.6043, 0.6116, 0.5356, 0.4341, 0.4028, 0.2554, 0.1545, 0.1217, 0.062, 0.0229, 0.0438, 0.0149, 0.057, 0.0655, 0.0521, 0.173, 0.2233, 0.3147, 0.4401, 0.6072, 0.7113, 0.8699, 1.0113, 1.1007, 1.1041, 1.07, 0.9722, 0.8661, 0.7468, 0.5606, 0.4469]}, {"true": 4, "pred": 4.7, "spectrum": [0.0344, -0.006, 0.0549, 0.0014, 0.0337, 0.0109, 0.0589, 0.0838, 0.1604, 0.2429, 0.3242, 0.3732, 0.4039, 0.3724, 0.2868, 0.2554, 0.1623, 0.1293, 0.0608, 0.0288, 0.0085, 0.0329, 0.0456, 0.0036, 0.0071, 0.0386, -0.0148, 0.0814, 0.0341, 0.0913, 0.0731, 0.0089, 0.0705, 0.0882, 0.1231, 0.1942, 0.3005, 0.387, 0.4404, 0.5619, 0.6389, 0.6266, 0.685, 0.5852, 0.5504, 0.4413, 0.3588, 0.3119, 0.2508, 0.1593, 0.1517, 0.1189, 0.1037, 0.0845, 0.0491, 0.0702, 0.0513, 0.077, 0.0729, 0.1032, 0.1507, 0.2199, 0.3988, 0.6105, 0.7878, 0.9292, 0.9843, 0.9603, 0.8135, 0.6416, 0.446, 0.2949, 0.1817, 0.1111, 0.0659, 0.0723, 0.0623, 0.0392, 0.0817, 0.0517, 0.0652, 0.1089, 0.0981, 0.1214, 0.1562, 0.2179, 0.3243, 0.3614, 0.4216, 0.5038, 0.5758, 0.5296, 0.5643, 0.5151, 0.4014, 0.351, 0.2573, 0.2296, 0.1471, 0.1276, 0.0788, 0.0874, 0.0935, 0.1563, 0.1367, 0.1807, 0.2622, 0.3474, 0.3803, 0.5071, 0.6638, 0.7266, 0.8748, 0.8893, 0.9679, 0.9221, 0.8375, 0.7371, 0.6318, 0.5016, 0.4067]}, {"true": 6, "pred": 8.59, "spectrum": [-0.0328, -0.0364, -0.0251, 0.0078, -0.0268, -0.0314, 0.0144, 0.0038, 0.0365, 0.089, 0.1858, 0.2618, 0.2952, 0.3261, 0.2663, 0.2199, 0.1488, 0.0644, 0.0341, 0.0315, 0.0262, -0.04, -0.0243, -0.0103, -0.0108, -0.021, 0.0448, -0.0332, -0.024, -0.019, -0.0058, 0.0154, 0.0316, 0.0581, 0.0587, 0.1394, 0.2037, 0.2702, 0.3726, 0.438, 0.4956, 0.5515, 0.5409, 0.5524, 0.4739, 0.4151, 0.3086, 0.2803, 0.2272, 0.189, 0.1093, 0.1148, 0.0764, 0.0583, 0.0475, 0.018, 0.047, 0.0549, 0.0477, 0.0939, 0.0806, 0.1459, 0.2761, 0.4182, 0.6317, 0.7882, 0.8966, 0.8546, 0.843, 0.6383, 0.4803, 0.3187, 0.2406, 0.0993, 0.032, 0.0854, 0.0802, 0.0172, 0.051, 0.0236, 0.0261, 0.0454, 0.0758, 0.1228, 0.1307, 0.1662, 0.2585, 0.365, 0.4156, 0.4862, 0.4851, 0.5305, 0.5384, 0.4655, 0.3902, 0.3574, 0.2787, 0.2166, 0.1327, 0.1156, 0.1243, 0.1219, 0.1171, 0.1015, 0.1257, 0.1508, 0.1875, 0.2694, 0.3767, 0.4848, 0.5922, 0.6891, 0.7761, 0.8619, 0.9062, 0.9025, 0.8378, 0.7405, 0.6658, 0.5168, 0.418]}, {"true": 8, "pred": 8.97, "spectrum": [-0.0363, -0.0127, -0.0146, -0.0092, -0.0555, -0.0574, -0.0569, 0.0247, 0.1097, 0.1142, 0.1874, 0.2374, 0.276, 0.2652, 0.1751, 0.14, 0.0697, 0.0546, 0.0154, 0.0086, -0.0095, -0.0115, -0.0593, -0.0418, -0.0297, -0.0315, -0.0121, -0.017, -0.0284, -0.0316, -0.0564, -0.0358, 0.0018, 0.0415, 0.0601, 0.1083, 0.1676, 0.2171, 0.3003, 0.3723, 0.3952, 0.4342, 0.4437, 0.3918, 0.3851, 0.3108, 0.2415, 0.2384, 0.1489, 0.1048, 0.0792, 0.0527, 0.0152, -0.0055, 0.0024, -0.0561, -0.0428, -0.0082, -0.0239, 0.0516, 0.0563, 0.146, 0.2491, 0.3436, 0.5326, 0.6464, 0.6523, 0.6607, 0.5525, 0.3987, 0.296, 0.1578, 0.0783, 0.0474, -0.023, -0.0126, -0.0293, -0.0526, -0.0172, -0.0163, -0.0094, -0.0108, -0.033, 0.0393, 0.0923, 0.1247, 0.1586, 0.1983, 0.2748, 0.3554, 0.387, 0.3817, 0.3409, 0.3069, 0.2371, 0.2032, 0.1543, 0.1014, 0.0812, 0.0089, 0.0075, 0.006, 0.003, 0.0166, 0.0132, 0.1059, 0.1544, 0.2269, 0.2841, 0.3274, 0.4791, 0.5514, 0.5817, 0.6531, 0.6266, 0.5808, 0.4965, 0.4483, 0.3584, 0.2431, 0.1658]}, {"true": 10, "pred": 11.99, "spectrum": [0.1535, 0.1087, 0.1299, 0.0898, 0.1111, 0.1704, 0.1582, 0.1534, 0.2238, 0.2952, 0.3681, 0.4123, 0.4389, 0.4218, 0.3188, 0.2674, 0.2169, 0.1474, 0.1833, 0.1483, 0.1252, 0.1239, 0.1416, 0.1514, 0.1285, 0.1022, 0.0785, 0.1454, 0.1405, 0.1047, 0.1232, 0.1557, 0.1741, 0.1436, 0.1822, 0.2585, 0.2822, 0.3704, 0.3894, 0.4831, 0.5398, 0.5486, 0.6161, 0.565, 0.541, 0.4816, 0.4534, 0.3587, 0.3267, 0.2742, 0.2177, 0.2177, 0.1889, 0.1925, 0.1539, 0.1777, 0.1666, 0.1208, 0.1704, 0.1657, 0.2198, 0.2519, 0.3521, 0.5051, 0.6432, 0.7061, 0.7152, 0.7363, 0.6653, 0.5337, 0.4158, 0.2574, 0.2062, 0.1654, 0.1529, 0.133, 0.1001, 0.1029, 0.1136, 0.1412, 0.1451, 0.1483, 0.1574, 0.1465, 0.2053, 0.2703, 0.3292, 0.3433, 0.438, 0.4434, 0.4365, 0.462, 0.4404, 0.4383, 0.3392, 0.3319, 0.2813, 0.2146, 0.1963, 0.1936, 0.1569, 0.1645, 0.134, 0.1755, 0.2134, 0.2445, 0.2904, 0.3247, 0.3951, 0.4848, 0.4805, 0.5658, 0.6166, 0.6347, 0.6385, 0.6299, 0.5486, 0.4975, 0.4353, 0.3682, 0.3193]}, {"true": 12, "pred": 13.25, "spectrum": [0.0328, 0.0536, 0.0274, 0.0722, 0.0787, 0.073, 0.072, 0.1532, 0.2003, 0.2449, 0.3592, 0.4361, 0.4561, 0.3529, 0.3265, 0.2342, 0.1658, 0.1193, 0.1277, 0.0841, 0.0925, 0.0582, 0.0372, 0.0815, 0.0579, 0.0622, 0.086, 0.0756, 0.0453, 0.0738, 0.0843, 0.087, 0.1386, 0.1501, 0.1733, 0.2506, 0.3199, 0.452, 0.5911, 0.6066, 0.6951, 0.7248, 0.7409, 0.71, 0.6439, 0.601, 0.5587, 0.4357, 0.3703, 0.2545, 0.2308, 0.2377, 0.2018, 0.1398, 0.1436, 0.1094, 0.1218, 0.0933, 0.1555, 0.1792, 0.2829, 0.3952, 0.5673, 0.8332, 0.9844, 1.1208, 1.0949, 1.0592, 0.8363, 0.6284, 0.4539, 0.3363, 0.1732, 0.0968, 0.1053, 0.1095, 0.1011, 0.1243, 0.1088, 0.0918, 0.1223, 0.1262, 0.1574, 0.1864, 0.2544, 0.3212, 0.4165, 0.5077, 0.5838, 0.6503, 0.7403, 0.73, 0.7393, 0.6538, 0.5854, 0.5081, 0.4175, 0.3073, 0.2687, 0.2211, 0.1562, 0.1919, 0.189, 0.1916, 0.2325, 0.262, 0.3919, 0.4611, 0.5973, 0.728, 0.9266, 0.9944, 1.103, 1.1529, 1.1151, 1.093, 1.0196, 0.8795, 0.7567, 0.6216, 0.5025]}, {"true": 14, "pred": 15.77, "spectrum": [-0.0606, -0.0553, -0.0929, -0.0552, -0.0299, -0.0533, -0.0183, -0.0025, 0.0828, 0.0938, 0.2108, 0.2782, 0.293, 0.252, 0.2074, 0.1581, 0.1073, 0.0381, -0.0351, -0.0294, -0.0452, -0.0156, -0.0657, -0.0634, -0.0573, -0.0736, -0.0357, -0.0776, -0.0849, -0.0512, -0.0743, -0.0167, -0.0571, -0.0012, 0.0856, 0.0791, 0.177, 0.2517, 0.3602, 0.3874, 0.5092, 0.5526, 0.5369, 0.5127, 0.5008, 0.4424, 0.3646, 0.2896, 0.2363, 0.1678, 0.1687, 0.1074, 0.0692, 0.0272, 0.0406, -0.0122, -0.0047, -0.0109, 0.0085, 0.0546, 0.0591, 0.1786, 0.3375, 0.5137, 0.674, 0.8238, 0.9581, 0.7891, 0.7074, 0.5142, 0.3329, 0.1689, 0.0661, 0.0056, -0.0007, -0.0527, -0.033, -0.0858, -0.0482, -0.0542, -0.0556, -0.0216, -0.0178, 0.0525, 0.0921, 0.1314, 0.2553, 0.3728, 0.4213, 0.5007, 0.5574, 0.5584, 0.5134, 0.4779, 0.4428, 0.3457, 0.2647, 0.1981, 0.1204, 0.0369, 0.0514, 0.0112, 0.012, 0.0172, 0.0738, 0.1268, 0.0961, 0.2737, 0.3639, 0.4747, 0.6074, 0.7717, 0.8115, 0.8737, 0.8897, 0.9037, 0.8394, 0.7333, 0.6436, 0.494, 0.4042]}, {"true": 16, "pred": 14.3, "spectrum": [-0.0013, -0.0209, -0.0188, -0.0185, 0.0328, -0.0019, 0.0004, 0.0408, 0.0747, 0.1176, 0.2012, 0.2606, 0.2546, 0.2548, 0.1912, 0.1382, 0.0853, 0.067, 0.0685, 0.0128, 0.0319, 0.0269, -0.0061, 0.006, -0.0244, -0.0027, 0.0495, 0.0087, 0.019, 0.0121, -0.0195, 0.0629, 0.0562, 0.092, 0.1408, 0.1651, 0.1905, 0.253, 0.3675, 0.3907, 0.3966, 0.4, 0.4377, 0.4343, 0.3732, 0.3138, 0.2892, 0.2262, 0.2189, 0.1732, 0.1331, 0.1389, 0.0963, 0.1039, 0.0874, 0.068, 0.086, 0.053, 0.0798, 0.0631, 0.1153, 0.1644, 0.2613, 0.3697, 0.5022, 0.5685, 0.6222, 0.5912, 0.5348, 0.4338, 0.2958, 0.2274, 0.1714, 0.0755, 0.0432, 0.0624, 0.033, 0.0298, 0.0697, 0.0591, 0.0621, 0.0786, 0.0919, 0.1334, 0.1738, 0.2346, 0.255, 0.2702, 0.3546, 0.3609, 0.4115, 0.4024, 0.4001, 0.4021, 0.31, 0.2842, 0.2611, 0.2092, 0.1878, 0.1438, 0.1089, 0.1296, 0.1211, 0.0955, 0.156, 0.1803, 0.1927, 0.3055, 0.3475, 0.389, 0.4189, 0.4779, 0.5953, 0.5902, 0.565, 0.5788, 0.5129, 0.5062, 0.3738, 0.3442, 0.301]}, {"true": 18, "pred": 17.28, "spectrum": [-0.0976, -0.0442, -0.0431, -0.0874, -0.0883, -0.0581, -0.0445, 0.024, 0.0067, 0.0856, 0.163, 0.2169, 0.2382, 0.2534, 0.2257, 0.1547, 0.086, 0.0014, 0.0031, -0.07, -0.0413, -0.0207, -0.0712, -0.0574, -0.0489, -0.0716, -0.055, -0.0936, -0.0112, -0.0578, -0.0637, -0.0115, -0.0407, 0.0285, 0.1005, 0.1473, 0.2069, 0.2662, 0.3918, 0.416, 0.4648, 0.5038, 0.4697, 0.4875, 0.4551, 0.3752, 0.3283, 0.2515, 0.2484, 0.1842, 0.168, 0.1345, 0.0716, 0.026, 0.0201, 0.0403, 0.0025, -0.0206, -0.0199, 0.0051, 0.0386, 0.1847, 0.2642, 0.4201, 0.6167, 0.7317, 0.7861, 0.8257, 0.6782, 0.4744, 0.3511, 0.1707, 0.1101, 0.0277, 0.0081, -0.005, -0.0175, -0.0001, -0.0359, -0.0381, -0.0478, -0.0295, -0.0091, 0.0462, 0.043, 0.1267, 0.1933, 0.3231, 0.3674, 0.4568, 0.5218, 0.5425, 0.5266, 0.5203, 0.414, 0.3716, 0.2987, 0.2448, 0.1685, 0.1326, 0.0718, 0.0855, 0.0612, 0.0923, 0.0623, 0.1885, 0.2353, 0.3287, 0.3956, 0.5473, 0.6857, 0.7703, 0.8044, 0.8841, 0.8302, 0.7772, 0.6719, 0.5659, 0.4883, 0.4031, 0.2241]}, {"true": 20, "pred": 21.44, "spectrum": [-0.0322, -0.0271, -0.0888, -0.0186, -0.0613, -0.0193, -0.0296, 0.0178, 0.0582, 0.1286, 0.1662, 0.2599, 0.2426, 0.228, 0.2127, 0.1394, 0.0932, 0.0363, 0.0054, 0.0002, -0.027, -0.0475, -0.0527, -0.0449, -0.0764, -0.0349, -0.026, -0.0658, -0.0161, -0.0353, -0.0481, -0.0523, -0.0395, 0.0422, 0.0108, 0.069, 0.1004, 0.2407, 0.2526, 0.3531, 0.3569, 0.441, 0.4465, 0.5098, 0.4102, 0.4165, 0.3462, 0.2605, 0.2267, 0.1858, 0.1845, 0.1081, 0.0985, 0.0649, 0.0491, -0.0069, -0.0509, -0.0152, -0.0427, -0.0021, 0.0669, 0.1312, 0.2377, 0.3808, 0.5367, 0.6797, 0.6942, 0.6346, 0.5313, 0.422, 0.2115, 0.127, 0.0734, -0.0147, -0.0581, -0.0615, -0.0673, -0.0929, -0.0735, -0.0903, -0.0855, -0.064, -0.0259, -0.0318, 0.0715, 0.0795, 0.1556, 0.2272, 0.3079, 0.3678, 0.4235, 0.4233, 0.4324, 0.377, 0.3385, 0.27, 0.2019, 0.1482, 0.0965, 0.0148, 0.0122, -0.0219, -0.0099, -0.0345, 0.0089, 0.0762, 0.0872, 0.1795, 0.2479, 0.3658, 0.4678, 0.5667, 0.6166, 0.6896, 0.672, 0.6351, 0.5763, 0.4661, 0.3443, 0.261, 0.157]}, {"true": 22, "pred": 22.92, "spectrum": [-0.0039, 0.0198, -0.0192, -0.0209, -0.0059, -0.0278, 0.0057, 0.045, 0.0742, 0.1244, 0.2151, 0.2625, 0.2502, 0.2477, 0.1918, 0.1647, 0.072, 0.0567, 0.0548, 0.0114, 0.01, -0.0414, -0.0487, -0.0435, -0.0408, -0.0025, -0.0025, -0.0306, -0.0283, -0.028, -0.0345, -0.0151, 0.003, 0.017, 0.0718, 0.0772, 0.1472, 0.2214, 0.2869, 0.3658, 0.403, 0.4323, 0.3967, 0.4054, 0.3375, 0.3441, 0.2898, 0.2091, 0.2047, 0.1576, 0.1731, 0.1071, 0.057, 0.0529, 0.0242, -0.0092, -0.0424, -0.072, -0.0342, 0.0159, 0.064, 0.135, 0.2581, 0.3932, 0.5226, 0.5958, 0.5508, 0.5336, 0.4234, 0.2543, 0.1767, 0.0627, -0.0142, -0.0688, -0.0873, -0.0714, -0.1132, -0.1013, -0.0785, -0.0968, -0.0567, -0.1056, -0.0433, -0.0473, 0.0084, 0.095, 0.1531, 0.2316, 0.2435, 0.3151, 0.3233, 0.3608, 0.3412, 0.3024, 0.1989, 0.2013, 0.1452, 0.1015, -0.0168, -0.0363, -0.0263, -0.0239, -0.04, -0.0331, -0.0241, 0.0311, 0.109, 0.2211, 0.2579, 0.3142, 0.4035, 0.5242, 0.5282, 0.5005, 0.482, 0.4505, 0.3782, 0.2927, 0.1964, 0.1302, 0.0758]}, {"true": 24, "pred": 21.53, "spectrum": [-0.0035, -0.0066, -0.0013, 0.0099, -0.0169, -0.0242, 0.0093, 0.0289, 0.0793, 0.1123, 0.1895, 0.2092, 0.2495, 0.2299, 0.2057, 0.1589, 0.0942, 0.073, 0.0202, 0.0089, -0.0311, 0.0099, -0.0066, 0.0082, -0.0201, 0.0085, -0.0019, -0.0284, -0.0026, -0.0017, -0.0096, 0.0208, 0.0334, 0.0667, 0.1071, 0.1303, 0.1778, 0.2801, 0.3293, 0.3427, 0.3744, 0.3856, 0.3776, 0.3603, 0.3088, 0.2962, 0.2857, 0.2457, 0.2067, 0.1654, 0.1698, 0.1476, 0.1226, 0.0409, 0.0357, 0.042, -0.0129, 0.0156, -0.0209, -0.0124, 0.0186, 0.0958, 0.1714, 0.2628, 0.4026, 0.5112, 0.5475, 0.5205, 0.4433, 0.3501, 0.2632, 0.1706, 0.0945, 0.0088, 0.0253, -0.0634, -0.0435, -0.0032, -0.0228, -0.0357, -0.0322, -0.0122, -0.0161, 0.0318, 0.0277, 0.1381, 0.1548, 0.2526, 0.2772, 0.3059, 0.374, 0.4019, 0.4281, 0.321, 0.3085, 0.2938, 0.2157, 0.0999, 0.1232, 0.1173, 0.0337, 0.0269, 0.0444, 0.0506, 0.0601, 0.1204, 0.1362, 0.2217, 0.3048, 0.3749, 0.395, 0.4588, 0.5147, 0.5202, 0.5081, 0.4688, 0.445, 0.3923, 0.2737, 0.1924, 0.1205]}, {"true": 26, "pred": 27.39, "spectrum": [0.0039, -0.0311, -0.0313, -0.002, -0.0178, 0.0341, -0.0128, 0.035, 0.071, 0.1836, 0.2267, 0.2505, 0.254, 0.2476, 0.2453, 0.1662, 0.1222, 0.1218, 0.0601, 0.0427, 0.0467, 0.0145, 0.027, -0.0028, 0.0305, 0.0764, -0.0099, 0.0043, 0.0088, 0.0331, -0.0012, 0.0473, 0.0377, 0.0545, 0.1159, 0.1267, 0.218, 0.2863, 0.3307, 0.3985, 0.4808, 0.5178, 0.5302, 0.5823, 0.5691, 0.5219, 0.48, 0.4492, 0.3737, 0.3131, 0.2565, 0.2249, 0.2178, 0.1559, 0.1001, 0.1132, 0.0709, 0.0351, 0.0949, 0.0859, 0.1557, 0.2299, 0.3268, 0.4766, 0.6022, 0.7084, 0.7575, 0.7394, 0.6248, 0.5067, 0.3818, 0.2705, 0.1531, 0.1101, 0.1084, 0.1044, 0.0462, 0.0824, 0.0659, 0.0787, 0.059, 0.0808, 0.1331, 0.1461, 0.1973, 0.2359, 0.3124, 0.3519, 0.4441, 0.4753, 0.5618, 0.5892, 0.5857, 0.5508, 0.5228, 0.484, 0.3965, 0.3781, 0.3149, 0.2847, 0.2161, 0.2046, 0.1863, 0.1978, 0.2436, 0.2814, 0.3511, 0.4123, 0.4957, 0.5884, 0.64, 0.7371, 0.7627, 0.7662, 0.7633, 0.6997, 0.6656, 0.5795, 0.4962, 0.4496, 0.342]}, {"true": 28, "pred": 27.51, "spectrum": [0.1122, 0.1552, 0.1607, 0.1475, 0.1981, 0.1852, 0.1755, 0.1933, 0.2513, 0.2835, 0.3455, 0.406, 0.427, 0.4186, 0.357, 0.3393, 0.3013, 0.2659, 0.2205, 0.1815, 0.1413, 0.1643, 0.165, 0.187, 0.1794, 0.1878, 0.1724, 0.1991, 0.1903, 0.1552, 0.1814, 0.1643, 0.1473, 0.2277, 0.2684, 0.3341, 0.3486, 0.4527, 0.4875, 0.518, 0.5872, 0.6783, 0.6926, 0.6402, 0.6288, 0.6243, 0.5976, 0.5441, 0.516, 0.4582, 0.4229, 0.3985, 0.3415, 0.3229, 0.2631, 0.261, 0.2228, 0.2233, 0.2366, 0.267, 0.2752, 0.307, 0.4886, 0.6236, 0.7786, 0.8297, 0.8503, 0.7981, 0.7212, 0.6106, 0.4785, 0.3746, 0.3006, 0.266, 0.187, 0.2521, 0.2135, 0.2304, 0.2199, 0.2105, 0.2186, 0.2589, 0.24, 0.2793, 0.3042, 0.423, 0.381, 0.4807, 0.6074, 0.6569, 0.6811, 0.7136, 0.7365, 0.7233, 0.6753, 0.625, 0.5718, 0.5394, 0.4527, 0.3892, 0.3452, 0.3503, 0.318, 0.3403, 0.3613, 0.3957, 0.4706, 0.5232, 0.6342, 0.6999, 0.8054, 0.8678, 0.882, 0.9279, 0.8875, 0.8708, 0.7861, 0.7264, 0.6114, 0.5488, 0.5152]}, {"true": 30, "pred": 28.16, "spectrum": [0.1115, 0.0969, 0.1152, 0.0954, 0.0961, 0.1283, 0.1493, 0.1534, 0.1795, 0.2449, 0.3077, 0.3456, 0.3515, 0.3606, 0.3256, 0.3038, 0.2293, 0.2028, 0.1718, 0.1345, 0.1287, 0.1676, 0.1583, 0.1003, 0.162, 0.108, 0.1302, 0.1405, 0.0947, 0.1152, 0.1235, 0.1346, 0.1625, 0.1936, 0.2213, 0.2655, 0.3282, 0.3383, 0.4206, 0.5226, 0.5084, 0.5646, 0.5585, 0.5396, 0.5589, 0.5306, 0.4827, 0.4243, 0.4511, 0.413, 0.3616, 0.3311, 0.3264, 0.2764, 0.2263, 0.2334, 0.2054, 0.1953, 0.1837, 0.2239, 0.2397, 0.3443, 0.4997, 0.5765, 0.702, 0.7276, 0.7596, 0.705, 0.536, 0.4262, 0.3462, 0.2889, 0.2375, 0.1753, 0.1409, 0.2074, 0.1379, 0.1398, 0.2002, 0.1595, 0.1785, 0.1942, 0.2196, 0.2396, 0.2754, 0.3173, 0.3751, 0.4271, 0.5359, 0.5811, 0.6237, 0.6609, 0.6111, 0.6582, 0.5357, 0.495, 0.4498, 0.3659, 0.3314, 0.3021, 0.2309, 0.2584, 0.2714, 0.2642, 0.2979, 0.3647, 0.4518, 0.4732, 0.5461, 0.6145, 0.6925, 0.7077, 0.7586, 0.7183, 0.7083, 0.6972, 0.6422, 0.5267, 0.4852, 0.4066, 0.3742]}, {"true": 32, "pred": 33.52, "spectrum": [-0.1092, -0.1561, -0.108, -0.1113, -0.0507, -0.113, -0.0709, -0.077, -0.0683, 0.0306, 0.063, 0.0951, 0.1554, 0.1691, 0.1604, 0.0957, 0.0723, -0.0267, -0.0344, -0.0688, -0.0852, -0.0801, -0.1524, -0.1174, -0.098, -0.1318, -0.1212, -0.1409, -0.1511, -0.1017, -0.1317, -0.1183, -0.087, -0.0702, -0.0304, 0.0059, 0.0487, 0.1361, 0.1869, 0.2531, 0.3368, 0.3414, 0.3604, 0.3808, 0.3805, 0.3617, 0.3283, 0.3012, 0.3063, 0.2359, 0.2057, 0.1745, 0.1253, 0.0499, 0.0303, -0.0508, -0.0564, -0.0773, -0.065, -0.0568, -0.0261, 0.0477, 0.1578, 0.2785, 0.4838, 0.6025, 0.5893, 0.6012, 0.5168, 0.3107, 0.2212, 0.0342, -0.0737, -0.1027, -0.1193, -0.1541, -0.1262, -0.1284, -0.1209, -0.1435, -0.182, -0.1647, -0.137, -0.1061, -0.0629, 0.0156, 0.0619, 0.1697, 0.2549, 0.3785, 0.4379, 0.4775, 0.5122, 0.5022, 0.4495, 0.387, 0.269, 0.2328, 0.1466, 0.0691, 0.0287, -0.0686, -0.0434, -0.0546, -0.0225, 0.0029, 0.0758, 0.1499, 0.2793, 0.4341, 0.524, 0.6049, 0.6555, 0.6672, 0.6447, 0.6085, 0.5256, 0.4011, 0.2912, 0.2141, 0.1051]}, {"true": 34, "pred": 33.08, "spectrum": [0.0582, 0.0831, 0.0307, 0.0594, 0.0446, 0.0611, 0.0625, 0.1104, 0.1543, 0.1897, 0.2958, 0.3255, 0.3276, 0.2921, 0.2785, 0.3028, 0.1838, 0.2169, 0.098, 0.1086, 0.0837, 0.0375, 0.0503, 0.0833, 0.0805, 0.0651, 0.0618, 0.037, 0.0311, 0.0311, 0.086, 0.1252, 0.126, 0.1633, 0.1332, 0.2456, 0.2699, 0.3533, 0.4545, 0.5414, 0.582, 0.6257, 0.6527, 0.6439, 0.6298, 0.6259, 0.5802, 0.5886, 0.4918, 0.471, 0.3962, 0.3864, 0.3145, 0.2577, 0.2305, 0.1772, 0.1381, 0.1431, 0.1089, 0.076, 0.1638, 0.2112, 0.3291, 0.4319, 0.6631, 0.7962, 0.8943, 0.9157, 0.8683, 0.6479, 0.5506, 0.3733, 0.2204, 0.1715, 0.1116, 0.0704, 0.0743, 0.0951, 0.0226, 0.0663, 0.0868, 0.0894, 0.1091, 0.158, 0.1865, 0.2588, 0.369, 0.4491, 0.5787, 0.6683, 0.7431, 0.8206, 0.8573, 0.7982, 0.7666, 0.6771, 0.6009, 0.5245, 0.4369, 0.3607, 0.2618, 0.2399, 0.2023, 0.1874, 0.2352, 0.3244, 0.3901, 0.494, 0.6818, 0.7585, 0.8788, 0.9904, 1.0459, 1.0483, 1.0446, 0.9417, 0.8503, 0.7295, 0.624, 0.5022, 0.401]}, {"true": 36, "pred": 37.87, "spectrum": [-0.0338, -0.0625, -0.0512, -0.0503, -0.0022, -0.022, 0.0018, -0.0225, 0.0105, 0.0685, 0.1126, 0.1655, 0.1702, 0.1635, 0.1609, 0.1172, 0.0576, 0.049, 0.0242, -0.0088, -0.0018, -0.0471, -0.0398, -0.0827, -0.0555, -0.0171, -0.0592, -0.0775, -0.0374, -0.0421, -0.0592, -0.0445, -0.0333, -0.0245, -0.0026, 0.0703, 0.0758, 0.1129, 0.1927, 0.2515, 0.31, 0.3071, 0.3429, 0.3247, 0.3873, 0.3855, 0.3065, 0.2952, 0.2694, 0.2117, 0.2046, 0.1455, 0.117, 0.0385, 0.0459, -0.007, -0.001, -0.0527, -0.0536, -0.0445, -0.004, 0.0595, 0.0927, 0.1988, 0.313, 0.4282, 0.4702, 0.4382, 0.3898, 0.3114, 0.1669, 0.1014, 0.0327, -0.0495, -0.1085, -0.1086, -0.1354, -0.1288, -0.0881, -0.1177, -0.1035, -0.1197, -0.1048, -0.069, -0.0351, 0.0493, 0.1112, 0.1537, 0.2391, 0.2663, 0.3829, 0.4226, 0.3624, 0.385, 0.3428, 0.2852, 0.2234, 0.1425, 0.1354, 0.0362, -0.0362, -0.0099, -0.0753, -0.0222, -0.0033, 0.0252, 0.1235, 0.1657, 0.2994, 0.3459, 0.4169, 0.4789, 0.5172, 0.4444, 0.434, 0.3663, 0.296, 0.2206, 0.1196, 0.008, -0.0078]}, {"true": 38, "pred": 37.92, "spectrum": [-0.0079, -0.0497, -0.0316, -0.0086, -0.0137, -0.0138, -0.0143, -0.0233, 0.0407, 0.0451, 0.1153, 0.1777, 0.2311, 0.206, 0.2272, 0.1895, 0.1638, 0.0916, 0.0555, 0.0232, 0.0059, -0.0143, 0.0094, -0.0694, -0.0227, -0.0294, -0.0411, -0.0195, -0.0347, 0.0115, 0.034, -0.0408, -0.0315, 0.0312, 0.0659, 0.0504, 0.1316, 0.2062, 0.2552, 0.3391, 0.394, 0.4264, 0.4933, 0.511, 0.5049, 0.495, 0.4255, 0.4307, 0.4338, 0.3475, 0.3024, 0.2449, 0.2149, 0.1198, 0.1143, 0.1017, 0.0262, 0.085, 0.0334, 0.0309, 0.0763, 0.1925, 0.2872, 0.4049, 0.5064, 0.6091, 0.6018, 0.5487, 0.4217, 0.3065, 0.2455, 0.0879, 0.0438, 0.0284, 0.0182, -0.0413, -0.0199, -0.0126, -0.0142, 0.0096, -0.0195, -0.0273, 0.0112, 0.0665, 0.0934, 0.1786, 0.2234, 0.3026, 0.3459, 0.4465, 0.4656, 0.4996, 0.5318, 0.4874, 0.4937, 0.434, 0.3176, 0.281, 0.224, 0.2065, 0.109, 0.0819, 0.0922, 0.1058, 0.1532, 0.1707, 0.2069, 0.3144, 0.4065, 0.4699, 0.5228, 0.6214, 0.6016, 0.6168, 0.577, 0.4812, 0.47, 0.3831, 0.3085, 0.2237, 0.1383]}, {"true": 40, "pred": 39.95, "spectrum": [-0.1048, -0.0958, -0.1186, -0.1008, -0.0829, -0.0686, -0.0875, -0.0932, -0.0311, 0.0231, 0.0897, 0.1475, 0.1704, 0.1533, 0.0922, 0.0621, 0.0361, -0.0211, -0.0667, -0.0599, -0.0787, -0.1085, -0.1259, -0.147, -0.1027, -0.1221, -0.1432, -0.1097, -0.1269, -0.1129, -0.1305, -0.0849, -0.092, -0.0594, -0.0758, -0.0343, 0.0339, 0.0663, 0.1441, 0.2106, 0.29, 0.3248, 0.341, 0.3852, 0.3961, 0.3769, 0.393, 0.3247, 0.2861, 0.2434, 0.2131, 0.1512, 0.0691, 0.0593, -0.0066, -0.0249, -0.0261, -0.0761, -0.0703, -0.0181, -0.0227, 0.034, 0.144, 0.2472, 0.4025, 0.5024, 0.4866, 0.4886, 0.3662, 0.2602, 0.118, 0.0309, -0.0707, -0.1079, -0.1241, -0.118, -0.1477, -0.126, -0.1092, -0.1963, -0.1268, -0.1016, -0.0815, -0.087, -0.0387, 0.0322, 0.0862, 0.1868, 0.2714, 0.3692, 0.4389, 0.4852, 0.5026, 0.4737, 0.4002, 0.3697, 0.2976, 0.1411, 0.1324, 0.0534, -0.015, -0.0332, -0.0154, -0.0347, 0.0113, 0.0864, 0.1573, 0.2005, 0.335, 0.3842, 0.4974, 0.5281, 0.5425, 0.5473, 0.479, 0.468, 0.3649, 0.3011, 0.2197, 0.1263, 0.0943]}, {"true": 42, "pred": 38.99, "spectrum": [-0.0501, -0.0641, -0.0434, -0.0424, -0.0815, -0.0495, -0.048, -0.0722, -0.0029, 0.0407, 0.0678, 0.0833, 0.0621, 0.1247, 0.0855, 0.0623, 0.0439, -0.0034, -0.0207, -0.038, -0.0375, -0.0721, -0.0654, -0.0679, -0.0815, -0.0711, -0.0706, -0.0954, -0.1023, -0.0668, -0.0932, -0.1176, -0.0387, -0.064, -0.0453, 0.014, 0.0071, 0.0335, 0.0859, 0.1342, 0.161, 0.184, 0.2465, 0.2707, 0.2612, 0.2417, 0.2529, 0.2202, 0.2071, 0.1287, 0.1592, 0.0842, 0.0643, 0.0108, -0.0321, -0.0713, -0.1013, -0.1031, -0.1264, -0.0653, -0.0418, 0.0259, 0.096, 0.1666, 0.2635, 0.3361, 0.3253, 0.288, 0.1844, 0.0998, 0.001, -0.0626, -0.106, -0.1263, -0.1573, -0.1391, -0.1658, -0.1918, -0.1779, -0.1644, -0.1308, -0.1769, -0.1166, -0.109, -0.0509, -0.0685, -0.0273, 0.0557, 0.0928, 0.2114, 0.2149, 0.2622, 0.2576, 0.2672, 0.2643, 0.1823, 0.1404, 0.0267, -0.0019, -0.0675, -0.0562, -0.0734, -0.1406, -0.1341, -0.0619, -0.0504, 0.0121, 0.0728, 0.1347, 0.2502, 0.2485, 0.2778, 0.3306, 0.3135, 0.2703, 0.2241, 0.1519, 0.0882, 0.0387, -0.031, -0.0588]}, {"true": 44, "pred": 43.99, "spectrum": [0.0132, 0.0228, 0.0294, 0.0295, 0.0663, 0.0136, 0.0467, 0.0516, 0.096, 0.1418, 0.178, 0.2637, 0.2653, 0.2668, 0.244, 0.1974, 0.1647, 0.1248, 0.0769, 0.0438, 0.0133, 0.0285, 0.0051, -0.0106, 0.0036, 0.0158, 0.0068, -0.0303, -0.0167, -0.0407, 0.002, 0.0117, -0.0268, 0.038, 0.0592, 0.0875, 0.1275, 0.205, 0.2159, 0.3047, 0.3, 0.3539, 0.3812, 0.375, 0.4147, 0.3866, 0.3982, 0.4157, 0.3445, 0.3482, 0.2794, 0.2512, 0.1741, 0.1442, 0.0908, 0.0439, 0.0441, -0.0049, 0.02, -0.0165, 0.0474, 0.1241, 0.1822, 0.2909, 0.4002, 0.4848, 0.4977, 0.4222, 0.3353, 0.23, 0.133, 0.0363, -0.0308, -0.0504, -0.076, -0.0773, -0.1179, -0.0805, -0.1289, -0.1494, -0.0773, -0.058, -0.0425, -0.041, -0.0082, 0.0463, 0.1216, 0.1675, 0.2737, 0.3157, 0.3599, 0.4342, 0.4075, 0.4099, 0.3625, 0.2807, 0.2389, 0.1348, 0.0727, 0.0161, 0.0071, -0.0153, -0.0247, -0.0236, 0.0355, 0.0401, 0.083, 0.1475, 0.2545, 0.3153, 0.399, 0.4005, 0.4315, 0.4254, 0.3802, 0.3266, 0.27, 0.1837, 0.07, 0.0493, -0.0196]}, {"true": 46, "pred": 48.13, "spectrum": [0.15, 0.1468, 0.1003, 0.1248, 0.0931, 0.1419, 0.1247, 0.1375, 0.1451, 0.2019, 0.2332, 0.2633, 0.319, 0.3402, 0.3745, 0.3492, 0.3451, 0.2627, 0.2437, 0.184, 0.1602, 0.1733, 0.108, 0.0891, 0.1037, 0.0906, 0.1053, 0.1186, 0.106, 0.1182, 0.1583, 0.16, 0.1501, 0.1398, 0.1561, 0.1904, 0.2409, 0.2826, 0.3114, 0.3905, 0.4636, 0.509, 0.5794, 0.5748, 0.5866, 0.6071, 0.6415, 0.5667, 0.5913, 0.5767, 0.4977, 0.4608, 0.4075, 0.3418, 0.2714, 0.2743, 0.1982, 0.1577, 0.134, 0.1457, 0.2005, 0.2025, 0.286, 0.3699, 0.4991, 0.6022, 0.6372, 0.6764, 0.6249, 0.4982, 0.3486, 0.3013, 0.2335, 0.1659, 0.1334, 0.1272, 0.1024, 0.1126, 0.1035, 0.1033, 0.0851, 0.0725, 0.1583, 0.109, 0.169, 0.2118, 0.2677, 0.3494, 0.4085, 0.5129, 0.5711, 0.6546, 0.6544, 0.6859, 0.6574, 0.628, 0.527, 0.4691, 0.3648, 0.3276, 0.2706, 0.2646, 0.2189, 0.2297, 0.2405, 0.2754, 0.3331, 0.4431, 0.4664, 0.5356, 0.6161, 0.6476, 0.669, 0.6876, 0.6417, 0.5724, 0.5415, 0.4736, 0.3949, 0.3036, 0.2647]}, {"true": 48, "pred": 48.16, "spectrum": [-0.0217, -0.0032, -0.0249, -0.0141, -0.0241, -0.0382, 0.023, 0.01, 0.0456, 0.1491, 0.1715, 0.215, 0.2693, 0.2357, 0.2221, 0.1676, 0.1642, 0.1031, 0.0829, 0.0395, 0.0367, -0.0274, -0.0384, -0.0485, -0.0669, -0.0562, -0.0119, -0.0245, -0.0259, 0.0076, -0.0487, -0.0221, 0.0145, 0.0115, 0.0876, 0.0455, 0.2024, 0.2479, 0.2839, 0.381, 0.4172, 0.4535, 0.4865, 0.4659, 0.5366, 0.5584, 0.5649, 0.5504, 0.494, 0.5039, 0.3923, 0.3219, 0.2889, 0.2236, 0.1489, 0.0692, 0.0221, -0.0441, -0.0347, 0.0165, 0.0233, 0.0933, 0.2074, 0.3682, 0.4542, 0.5961, 0.6252, 0.6055, 0.5259, 0.3841, 0.1954, 0.1268, 0.0237, 0.02, -0.0186, -0.0745, -0.0676, -0.0875, -0.1019, -0.1006, -0.0861, -0.0802, -0.0231, -0.0116, 0.0421, 0.1278, 0.191, 0.2895, 0.3987, 0.4599, 0.5385, 0.6378, 0.646, 0.6401, 0.5892, 0.5606, 0.4939, 0.381, 0.2751, 0.2153, 0.1093, 0.0908, 0.0477, 0.0875, 0.0841, 0.1773, 0.294, 0.4005, 0.4991, 0.591, 0.6658, 0.6903, 0.7276, 0.7281, 0.6217, 0.5207, 0.4102, 0.278, 0.1885, 0.1175, 0.0982]}, {"true": 50, "pred": 47.79, "spectrum": [-0.0359, -0.0362, -0.0136, 0.0047, -0.0043, -0.0199, -0.0195, -0.0024, 0.0535, 0.0828, 0.1342, 0.1508, 0.1463, 0.1736, 0.1762, 0.2057, 0.143, 0.126, 0.0624, 0.0082, 0.0744, -0.035, -0.035, -0.0123, -0.0551, -0.0457, -0.052, -0.0034, -0.0482, -0.0191, -0.0179, -0.0045, -0.0151, -0.0055, 0.0079, 0.0173, 0.0896, 0.124, 0.2036, 0.2376, 0.31, 0.3653, 0.388, 0.4444, 0.4525, 0.5037, 0.5105, 0.4131, 0.3987, 0.3815, 0.3581, 0.3025, 0.2191, 0.195, 0.0946, 0.097, 0.0446, -0.0036, 0.021, 0.0289, 0.006, 0.1245, 0.1896, 0.2635, 0.3577, 0.4582, 0.4758, 0.4471, 0.4004, 0.2626, 0.1996, 0.0885, 0.0306, -0.0259, -0.0362, -0.0377, -0.0381, -0.0226, -0.0529, -0.0602, -0.0627, -0.0082, 0.0363, 0.0411, 0.0849, 0.1372, 0.1982, 0.233, 0.3929, 0.4018, 0.452, 0.5341, 0.5467, 0.544, 0.5178, 0.4899, 0.3653, 0.2869, 0.1936, 0.1594, 0.0864, 0.0518, 0.0649, 0.0818, 0.1462, 0.1564, 0.2553, 0.3124, 0.3349, 0.4852, 0.517, 0.5637, 0.5477, 0.5407, 0.4832, 0.4324, 0.3424, 0.3018, 0.191, 0.1503, 0.1133]}, {"true": 52, "pred": 53.87, "spectrum": [0.0126, -0.0194, -0.0197, -0.0333, -0.0053, -0.0113, 0.0008, 0.0402, 0.0473, 0.0472, 0.0892, 0.0993, 0.1407, 0.1195, 0.1409, 0.1298, 0.0638, 0.082, 0.0446, 0.0766, 0.0216, 0.0246, 0.0213, -0.014, -0.0196, -0.0015, -0.0008, 0.0179, -0.0095, -0.0208, 0.0028, -0.0101, 0.023, 0.0156, 0.0458, 0.0237, 0.0785, 0.1029, 0.1397, 0.177, 0.2424, 0.295, 0.3609, 0.3918, 0.4065, 0.4532, 0.4329, 0.394, 0.3646, 0.3344, 0.251, 0.2491, 0.216, 0.19, 0.136, 0.0934, 0.0414, 0.0642, 0.005, 0.0794, 0.0625, 0.1593, 0.2277, 0.3078, 0.3292, 0.3639, 0.4106, 0.3699, 0.3263, 0.2587, 0.1954, 0.1188, 0.1079, 0.0146, 0.0561, 0.0108, 0.0293, 0.0155, 0.0373, 0.0492, 0.058, 0.0436, 0.0294, 0.1065, 0.1213, 0.1499, 0.1722, 0.2469, 0.2826, 0.3661, 0.4269, 0.4623, 0.4851, 0.4817, 0.4747, 0.4424, 0.3719, 0.3161, 0.2512, 0.2044, 0.1586, 0.1516, 0.1498, 0.118, 0.1917, 0.2322, 0.2893, 0.3368, 0.3751, 0.4477, 0.4631, 0.5264, 0.521, 0.4656, 0.4772, 0.3798, 0.3557, 0.3124, 0.2315, 0.1753, 0.1564]}, {"true": 54, "pred": 56.56, "spectrum": [-0.0235, -0.0496, -0.0162, -0.0667, -0.0437, -0.0484, -0.0463, -0.0152, 0.0304, 0.0566, 0.1034, 0.1445, 0.1719, 0.1388, 0.1373, 0.1635, 0.1595, 0.102, 0.0582, 0.0561, 0.0357, -0.027, 0.0023, -0.0211, -0.0465, -0.0352, -0.0462, -0.0334, -0.0155, -0.0587, 0.0165, -0.0137, 0.001, -0.0301, 0.0196, 0.0567, 0.1, 0.1443, 0.2039, 0.2721, 0.3084, 0.392, 0.4391, 0.4457, 0.5421, 0.5258, 0.5837, 0.6023, 0.5175, 0.5013, 0.4532, 0.3881, 0.304, 0.2487, 0.1796, 0.1464, 0.0963, 0.0628, 0.0476, 0.074, 0.1017, 0.1266, 0.2762, 0.3682, 0.4844, 0.5693, 0.5419, 0.5329, 0.4314, 0.3204, 0.2315, 0.1021, 0.0743, 0.0476, -0.0238, 0.0274, -0.0126, -0.0453, 0.0193, 0.0285, 0.0153, 0.0102, 0.0546, 0.0412, 0.0759, 0.1382, 0.2196, 0.2802, 0.4054, 0.5017, 0.608, 0.6661, 0.693, 0.7107, 0.6894, 0.6468, 0.5802, 0.4843, 0.4059, 0.3125, 0.2307, 0.1724, 0.1758, 0.1515, 0.1825, 0.2223, 0.335, 0.3924, 0.5022, 0.6036, 0.6805, 0.7303, 0.7665, 0.7355, 0.6744, 0.5979, 0.5132, 0.46, 0.3111, 0.2519, 0.2016]}, {"true": 56, "pred": 57.61, "spectrum": [0.0991, 0.0707, 0.075, 0.0576, 0.0818, 0.094, 0.1058, 0.1012, 0.1237, 0.1812, 0.1882, 0.236, 0.3008, 0.3114, 0.3097, 0.3202, 0.2941, 0.2828, 0.2183, 0.1848, 0.1319, 0.1237, 0.0829, 0.0407, 0.0663, 0.0639, -0.0005, 0.0593, 0.058, 0.0318, 0.0335, 0.067, 0.0625, 0.0784, 0.0927, 0.1195, 0.1662, 0.2202, 0.3305, 0.3508, 0.4506, 0.5595, 0.6282, 0.6691, 0.7223, 0.7637, 0.7868, 0.7369, 0.6835, 0.6447, 0.6107, 0.5265, 0.4098, 0.3307, 0.2474, 0.1543, 0.1282, 0.1085, 0.0813, 0.1332, 0.1477, 0.2487, 0.3498, 0.4857, 0.6241, 0.6431, 0.6778, 0.5922, 0.479, 0.3372, 0.1878, 0.1523, 0.0891, 0.0101, 0.0143, 0.0234, 0.0174, -0.0004, -0.0382, -0.0315, -0.0357, -0.0522, 0.0347, 0.0157, 0.0721, 0.1606, 0.222, 0.346, 0.4401, 0.564, 0.6373, 0.7516, 0.8245, 0.8529, 0.8118, 0.7767, 0.7115, 0.5921, 0.4557, 0.3779, 0.2654, 0.1898, 0.2054, 0.1289, 0.1734, 0.2531, 0.3581, 0.4469, 0.6067, 0.7325, 0.804, 0.8493, 0.869, 0.8658, 0.7213, 0.6245, 0.5351, 0.396, 0.3408, 0.2024, 0.1466]}, {"true": 58, "pred": 62.23, "spectrum": [-0.0745, -0.0694, -0.0998, -0.0884, -0.0409, -0.0721, -0.0753, -0.058, -0.0256, 0.0097, 0.0569, 0.0593, 0.0787, 0.1042, 0.117, 0.1041, 0.0696, 0.0642, 0.0374, -0.0232, -0.0179, -0.0491, -0.0536, -0.0254, -0.0721, -0.0548, -0.0558, -0.0695, -0.0786, -0.0305, -0.0668, -0.0392, -0.049, 0.0044, 0.001, 0.0532, 0.0182, 0.065, 0.1525, 0.1618, 0.2246, 0.2686, 0.241, 0.2697, 0.3844, 0.3459, 0.3785, 0.3551, 0.3448, 0.3327, 0.31, 0.2591, 0.2164, 0.1353, 0.0961, 0.0794, 0.036, 0.0579, -0.0023, 0.0005, 0.0654, 0.0956, 0.1725, 0.2835, 0.2757, 0.3221, 0.3284, 0.3203, 0.2429, 0.1336, 0.1077, 0.0374, 0.0232, 0.0266, -0.0022, -0.0178, 0.0032, -0.0266, -0.0033, 0.0046, 0.0173, -0.0355, -0.004, 0.023, 0.0614, 0.1035, 0.1632, 0.2016, 0.2365, 0.3391, 0.4125, 0.4172, 0.4737, 0.4503, 0.4441, 0.407, 0.3439, 0.3133, 0.2425, 0.1441, 0.1344, 0.0954, 0.0762, 0.0783, 0.1329, 0.1787, 0.2121, 0.2469, 0.3201, 0.3546, 0.3979, 0.4076, 0.414, 0.4189, 0.4124, 0.3147, 0.3014, 0.2278, 0.1958, 0.1552, 0.1071]}, {"true": 60, "pred": 60.31, "spectrum": [0.0366, 0.0531, 0.0025, 0.0045, 0.0292, 0.0315, 0.0325, 0.0527, 0.0575, 0.1205, 0.1936, 0.2217, 0.252, 0.2576, 0.3109, 0.2351, 0.2468, 0.2023, 0.1579, 0.1532, 0.0756, 0.0494, 0.0453, 0.0501, 0.0112, 0.0104, 0.021, 0.0112, 0.0149, 0.0298, 0.0439, 0.0042, 0.0476, 0.0679, 0.1061, 0.1141, 0.1427, 0.1589, 0.2537, 0.3164, 0.3631, 0.4721, 0.5029, 0.5731, 0.675, 0.6956, 0.7266, 0.6771, 0.6514, 0.6194, 0.5401, 0.4941, 0.4189, 0.3414, 0.216, 0.1862, 0.1162, 0.1273, 0.0715, 0.0733, 0.1334, 0.1606, 0.2845, 0.3798, 0.4761, 0.5071, 0.5949, 0.5505, 0.468, 0.3376, 0.2427, 0.1554, 0.0854, 0.0113, 0.0415, -0.0107, 0.004, 0.0198, 0.0043, -0.0012, 0.0118, 0.0013, 0.0349, 0.0187, 0.0469, 0.1042, 0.1649, 0.2554, 0.3816, 0.4795, 0.5738, 0.7144, 0.7269, 0.7652, 0.7739, 0.706, 0.6318, 0.5247, 0.4391, 0.3445, 0.2648, 0.151, 0.141, 0.1769, 0.1953, 0.2315, 0.2761, 0.4101, 0.5353, 0.6273, 0.7142, 0.7216, 0.7233, 0.6594, 0.5987, 0.5215, 0.4228, 0.3543, 0.2229, 0.1822, 0.0642]}, {"true": 62, "pred": 62.22, "spectrum": [-0.0229, 0.0338, -0.0019, 0.0312, 0.015, 0.0116, 0.0348, 0.0105, 0.062, 0.1012, 0.1455, 0.1949, 0.1993, 0.2398, 0.2547, 0.2429, 0.2304, 0.1881, 0.1546, 0.1269, 0.0744, 0.0483, 0.084, 0.0599, 0.0521, 0.0506, 0.053, 0.0292, 0.043, 0.0719, 0.0379, 0.0867, 0.0356, 0.0606, 0.0965, 0.1468, 0.1305, 0.2099, 0.2413, 0.3001, 0.3385, 0.383, 0.4565, 0.4645, 0.5835, 0.5831, 0.5982, 0.6225, 0.6334, 0.5959, 0.5671, 0.5483, 0.4511, 0.3652, 0.3134, 0.236, 0.2517, 0.1726, 0.1447, 0.1931, 0.1759, 0.2724, 0.3202, 0.3981, 0.4902, 0.5833, 0.5531, 0.5375, 0.4462, 0.3612, 0.292, 0.2078, 0.151, 0.1334, 0.0957, 0.1026, 0.1013, 0.1304, 0.0958, 0.1199, 0.1303, 0.0929, 0.1479, 0.1424, 0.2062, 0.1966, 0.2524, 0.3173, 0.4023, 0.5124, 0.5428, 0.6305, 0.7004, 0.7453, 0.7269, 0.6966, 0.6405, 0.5548, 0.517, 0.4336, 0.4008, 0.3043, 0.2432, 0.2901, 0.327, 0.3239, 0.4206, 0.4521, 0.5426, 0.559, 0.6445, 0.6552, 0.6628, 0.647, 0.6067, 0.5536, 0.5023, 0.4626, 0.3806, 0.3115, 0.307]}, {"true": 64, "pred": 64.48, "spectrum": [-0.0105, -0.0035, -0.0235, -0.0363, -0.0324, -0.0378, -0.0372, 0.0076, 0.0268, 0.0454, 0.0736, 0.1056, 0.2253, 0.265, 0.2497, 0.2044, 0.2283, 0.1568, 0.1161, 0.0509, 0.0373, -0.0011, 0.0104, 0.0033, -0.0322, 0.0183, 0.001, 0.0279, 0.0096, -0.0024, -0.0277, 0.0358, 0.0152, 0.0337, 0.0684, 0.0763, 0.0972, 0.1692, 0.191, 0.2662, 0.3434, 0.3707, 0.4504, 0.5295, 0.5912, 0.6376, 0.6291, 0.7173, 0.6881, 0.6523, 0.6288, 0.5658, 0.4604, 0.4123, 0.2895, 0.2297, 0.1996, 0.0799, 0.1025, 0.1247, 0.1478, 0.2414, 0.2577, 0.4091, 0.5195, 0.5815, 0.5719, 0.5371, 0.4322, 0.3366, 0.2204, 0.1485, 0.0946, 0.1, 0.0335, 0.0545, 0.059, 0.0536, 0.0628, 0.0387, 0.0848, 0.0629, 0.0809, 0.1381, 0.1281, 0.1906, 0.2518, 0.3613, 0.439, 0.5672, 0.6648, 0.7714, 0.83, 0.8913, 0.8935, 0.8644, 0.8273, 0.6545, 0.5718, 0.4716, 0.3672, 0.3465, 0.274, 0.2706, 0.3639, 0.4412, 0.492, 0.5959, 0.6669, 0.7817, 0.8417, 0.8459, 0.8282, 0.7706, 0.7035, 0.6591, 0.5166, 0.4574, 0.3284, 0.3146, 0.2394]}, {"true": 66, "pred": 66.45, "spectrum": [0.0417, 0.0337, 0.0443, 0.0437, 0.0304, 0.0764, 0.0757, 0.053, 0.0787, 0.1011, 0.0854, 0.1087, 0.1487, 0.1444, 0.1764, 0.2111, 0.1633, 0.1665, 0.163, 0.0725, 0.0971, 0.0528, 0.051, 0.0525, 0.0711, 0.0181, 0.0568, 0.0495, 0.0277, 0.0148, 0.0426, 0.0342, 0.0566, 0.0743, 0.0465, 0.0372, 0.077, 0.1165, 0.1441, 0.1879, 0.2548, 0.2559, 0.3077, 0.3879, 0.4338, 0.4476, 0.4757, 0.5175, 0.4741, 0.4781, 0.4561, 0.4348, 0.335, 0.2596, 0.2375, 0.1783, 0.1813, 0.1018, 0.0787, 0.1133, 0.1454, 0.0706, 0.1616, 0.2555, 0.2848, 0.3879, 0.3898, 0.4215, 0.3526, 0.3127, 0.2337, 0.1187, 0.1099, 0.0688, 0.0665, 0.0427, 0.0497, 0.0253, 0.0678, 0.0575, 0.046, 0.0412, 0.0777, 0.0599, 0.1059, 0.1106, 0.1916, 0.2181, 0.2912, 0.3917, 0.4255, 0.5223, 0.5499, 0.5815, 0.5859, 0.5051, 0.4785, 0.3894, 0.3302, 0.296, 0.2275, 0.1934, 0.1325, 0.1375, 0.1745, 0.2109, 0.2577, 0.3485, 0.3784, 0.4557, 0.4849, 0.513, 0.5408, 0.4999, 0.4722, 0.4043, 0.3318, 0.292, 0.2146, 0.1705, 0.1342]}, {"true": 68, "pred": 68.04, "spectrum": [-0.074, -0.0188, -0.0477, -0.0494, -0.0325, -0.0569, -0.0348, -0.0375, -0.0048, 0.0142, 0.0752, 0.1157, 0.0827, 0.1772, 0.2289, 0.1447, 0.161, 0.1618, 0.1319, 0.0903, 0.1069, 0.0438, -0.0174, -0.0174, 0.0383, -0.0308, -0.0284, -0.019, -0.0308, -0.0461, 0.0046, -0.0219, -0.0206, 0.0093, 0.0003, 0.0405, 0.09, 0.0803, 0.1665, 0.2366, 0.314, 0.3451, 0.4183, 0.4877, 0.5352, 0.5826, 0.5923, 0.6144, 0.5662, 0.5664, 0.5221, 0.4424, 0.3329, 0.2877, 0.2393, 0.1357, 0.1121, 0.0761, 0.1013, 0.0871, 0.0889, 0.1238, 0.1792, 0.2271, 0.3425, 0.3852, 0.45, 0.4214, 0.354, 0.3277, 0.2158, 0.1269, 0.1022, 0.0611, 0.0411, 0.0256, 0.0292, 0.0306, 0.0088, 0.0623, 0.0182, 0.0695, 0.0528, 0.027, 0.1068, 0.1332, 0.1675, 0.275, 0.3427, 0.3989, 0.4856, 0.5767, 0.6288, 0.6501, 0.693, 0.6643, 0.5492, 0.501, 0.4059, 0.3616, 0.2744, 0.2054, 0.1903, 0.197, 0.2056, 0.26, 0.3364, 0.4268, 0.5114, 0.5404, 0.5626, 0.6131, 0.5542, 0.5632, 0.4619, 0.4243, 0.3358, 0.2715, 0.2083, 0.1612, 0.1518]}, {"true": 70, "pred": 68.69, "spectrum": [0.0002, 0.0133, 0.0006, 0.0043, 0.0777, -0.0006, 0.0173, 0.0265, 0.0918, 0.0989, 0.1311, 0.1555, 0.2219, 0.2572, 0.3081, 0.2653, 0.2795, 0.2314, 0.1857, 0.1553, 0.0776, 0.0676, 0.0186, 0.0074, 0.0333, 0.0032, -0.032, -0.0237, 0.004, 0.0109, 0.01, -0.0053, 0.0089, 0.0329, 0.0412, 0.0989, 0.1563, 0.2012, 0.2056, 0.3229, 0.3705, 0.441, 0.5448, 0.6249, 0.6766, 0.7803, 0.823, 0.9187, 0.9015, 0.8607, 0.8539, 0.7414, 0.6123, 0.4739, 0.3791, 0.2446, 0.1986, 0.1807, 0.075, 0.1083, 0.1696, 0.1721, 0.2954, 0.4148, 0.5273, 0.6127, 0.6523, 0.5811, 0.4745, 0.3981, 0.2603, 0.1555, 0.0623, 0.0519, 0.0048, 0.0216, 0.024, -0.0236, -0.0147, 0.0359, 0.0041, 0.0102, 0.0235, 0.0564, 0.1, 0.1721, 0.3205, 0.4115, 0.5796, 0.702, 0.8412, 0.9934, 1.0648, 1.0983, 1.0571, 0.9956, 0.8579, 0.7455, 0.5744, 0.4528, 0.3496, 0.2436, 0.2483, 0.2228, 0.2949, 0.3676, 0.4628, 0.5851, 0.7124, 0.8369, 0.8821, 0.9177, 0.9525, 0.8517, 0.7385, 0.6424, 0.5282, 0.4131, 0.2677, 0.2311, 0.1168]}, {"true": 72, "pred": 72.83, "spectrum": [0.0505, 0.0691, 0.0859, 0.0506, 0.0365, 0.0613, 0.0392, 0.0833, 0.0855, 0.1485, 0.1433, 0.1973, 0.1958, 0.2173, 0.2439, 0.2551, 0.2639, 0.2662, 0.2017, 0.1766, 0.1058, 0.1083, 0.0803, 0.0791, 0.0636, 0.0983, 0.0858, 0.0526, 0.0762, 0.026, 0.0335, 0.0571, 0.07, 0.0466, 0.0761, 0.111, 0.1406, 0.1623, 0.2205, 0.2648, 0.3432, 0.3933, 0.4919, 0.5471, 0.61, 0.674, 0.6797, 0.6907, 0.6971, 0.6202, 0.5517, 0.5495, 0.4333, 0.2958, 0.272, 0.1966, 0.132, 0.1074, 0.1061, 0.0903, 0.0799, 0.1429, 0.2035, 0.2748, 0.3643, 0.4368, 0.4668, 0.467, 0.4082, 0.3172, 0.2076, 0.1709, 0.1027, 0.0618, 0.0577, 0.0575, 0.055, 0.0204, 0.0244, 0.0308, 0.0194, 0.0485, 0.0507, 0.0743, 0.0912, 0.1269, 0.1396, 0.2201, 0.2857, 0.3804, 0.4646, 0.5563, 0.6733, 0.6996, 0.6873, 0.7563, 0.669, 0.6151, 0.5, 0.4149, 0.3424, 0.2553, 0.2284, 0.2389, 0.2229, 0.243, 0.2871, 0.4078, 0.4697, 0.5431, 0.6031, 0.5489, 0.6408, 0.5807, 0.4974, 0.4526, 0.3879, 0.2749, 0.217, 0.1643, 0.1051]}, {"true": 74, "pred": 74.84, "spectrum": [-0.1186, -0.0848, -0.0968, -0.1185, -0.0916, -0.0964, -0.1192, -0.0851, -0.0699, -0.0227, -0.0265, -0.0212, 0.0346, 0.0698, 0.106, 0.1102, 0.1217, 0.0618, 0.049, 0.0224, 0.012, 0.0082, -0.0366, -0.0311, -0.102, -0.0406, -0.0635, -0.1025, -0.069, -0.0614, -0.0562, -0.0781, -0.0684, -0.0369, 0.0041, -0.0034, 0.0116, 0.0722, 0.083, 0.1644, 0.2015, 0.2311, 0.321, 0.3454, 0.3622, 0.4839, 0.5577, 0.5716, 0.5634, 0.5802, 0.5008, 0.4113, 0.3619, 0.2805, 0.235, 0.1342, 0.1185, 0.0506, 0.0711, 0.0407, 0.0234, 0.084, 0.1191, 0.1977, 0.3031, 0.3397, 0.323, 0.3688, 0.3181, 0.2363, 0.1607, 0.1097, 0.0514, 0.0357, -0.0005, 0.0098, -0.0179, -0.0081, -0.0301, 0.0258, 0.006, -0.002, 0.0263, 0.049, 0.102, 0.124, 0.138, 0.2559, 0.3192, 0.4029, 0.4753, 0.6101, 0.6544, 0.6925, 0.6867, 0.6573, 0.5935, 0.478, 0.4281, 0.3355, 0.2663, 0.2486, 0.2045, 0.2239, 0.213, 0.2452, 0.3343, 0.4389, 0.514, 0.5747, 0.579, 0.5917, 0.6077, 0.5227, 0.5252, 0.4246, 0.3398, 0.2654, 0.2111, 0.1568, 0.144]}, {"true": 76, "pred": 77.31, "spectrum": [0.019, 0.0, 0.0319, 0.006, 0.0023, 0.0191, 0.0618, 0.0596, 0.0288, 0.0875, 0.1263, 0.1101, 0.1826, 0.2593, 0.2374, 0.2728, 0.2761, 0.2481, 0.1642, 0.1367, 0.0916, 0.0718, 0.0781, 0.0372, 0.0268, 0.0199, 0.0331, 0.0297, 0.0329, 0.05, 0.0535, 0.053, 0.0618, 0.11, 0.0236, 0.0895, 0.1214, 0.1693, 0.2044, 0.2235, 0.2815, 0.3712, 0.3964, 0.5254, 0.622, 0.6515, 0.6952, 0.6915, 0.7147, 0.6931, 0.6596, 0.5615, 0.5371, 0.3979, 0.3055, 0.2991, 0.1815, 0.1892, 0.1215, 0.1734, 0.1786, 0.1649, 0.2483, 0.3648, 0.3697, 0.4625, 0.4814, 0.485, 0.4028, 0.347, 0.2669, 0.1717, 0.1663, 0.1257, 0.1132, 0.1562, 0.146, 0.0676, 0.0948, 0.1172, 0.1289, 0.1631, 0.1132, 0.1445, 0.1785, 0.1792, 0.2912, 0.3079, 0.4146, 0.514, 0.6095, 0.6878, 0.7612, 0.7831, 0.7606, 0.7444, 0.7147, 0.6352, 0.4996, 0.4574, 0.38, 0.3103, 0.2868, 0.3071, 0.337, 0.4314, 0.4311, 0.4833, 0.6151, 0.592, 0.647, 0.6524, 0.6248, 0.5735, 0.4815, 0.4336, 0.4157, 0.3431, 0.2595, 0.2835, 0.2012]}, {"true": 78, "pred": 77.91, "spectrum": [0.0227, 0.0075, -0.0016, -0.0135, 0.0382, 0.0208, 0.0672, 0.0409, 0.0163, 0.1034, 0.074, 0.1284, 0.1712, 0.1934, 0.2218, 0.2281, 0.2336, 0.2228, 0.2637, 0.1514, 0.1579, 0.0683, 0.0594, 0.0519, 0.064, 0.0589, 0.0338, 0.0473, 0.0492, 0.0422, 0.0323, 0.06, 0.0521, 0.0587, 0.0776, 0.0823, 0.0957, 0.0753, 0.1955, 0.2369, 0.2993, 0.3674, 0.4343, 0.5083, 0.5971, 0.6681, 0.701, 0.748, 0.781, 0.772, 0.7272, 0.6562, 0.5752, 0.4907, 0.4232, 0.3291, 0.2392, 0.1729, 0.1585, 0.1443, 0.1437, 0.1663, 0.2516, 0.3065, 0.3799, 0.5175, 0.5094, 0.4984, 0.4535, 0.3744, 0.2848, 0.2196, 0.1641, 0.1173, 0.0682, 0.057, 0.0581, 0.093, 0.0648, 0.0688, 0.1248, 0.0935, 0.1199, 0.1056, 0.136, 0.1989, 0.2668, 0.3392, 0.4581, 0.6101, 0.7024, 0.8325, 0.9485, 0.9977, 0.9547, 0.9129, 0.8315, 0.7371, 0.6452, 0.481, 0.3899, 0.346, 0.3194, 0.3335, 0.3629, 0.4444, 0.5271, 0.6223, 0.7013, 0.7842, 0.7818, 0.7871, 0.746, 0.7259, 0.6119, 0.4863, 0.4197, 0.3585, 0.321, 0.2581, 0.2181]}, {"true": 80, "pred": 81.19, "spectrum": [-0.0323, -0.037, -0.0862, -0.0545, -0.0868, -0.0722, -0.0137, -0.0264, 0.0078, -0.0142, 0.0165, 0.0744, 0.116, 0.1257, 0.159, 0.1656, 0.1928, 0.1023, 0.1121, 0.0999, 0.0239, -0.0321, -0.0142, -0.0378, -0.0557, -0.0493, -0.0133, -0.0288, -0.0456, -0.0626, -0.0511, -0.0376, -0.0477, -0.0362, -0.0258, -0.0349, 0.0047, 0.0322, 0.0731, 0.1356, 0.1956, 0.2585, 0.3257, 0.4146, 0.4944, 0.5903, 0.6555, 0.6788, 0.6499, 0.6844, 0.6519, 0.5244, 0.476, 0.3553, 0.257, 0.1804, 0.1112, 0.0133, 0.0417, 0.0093, 0.0364, 0.0736, 0.1521, 0.2001, 0.281, 0.3693, 0.376, 0.3471, 0.279, 0.2375, 0.1236, 0.0511, 0.0337, -0.0327, -0.0804, -0.0441, -0.0402, -0.0635, -0.0739, 0.0029, -0.0422, -0.0226, 0.0016, 0.0125, 0.0529, 0.0846, 0.1179, 0.1707, 0.2527, 0.4134, 0.5426, 0.6604, 0.7288, 0.8038, 0.8157, 0.7638, 0.6895, 0.6068, 0.4999, 0.3704, 0.2796, 0.2085, 0.1662, 0.162, 0.2099, 0.2955, 0.3283, 0.4055, 0.5386, 0.5605, 0.6101, 0.6098, 0.6058, 0.5189, 0.4647, 0.3844, 0.2977, 0.2085, 0.1239, 0.1337, 0.0691]}, {"true": 82, "pred": 80.94, "spectrum": [0.1001, 0.0725, 0.0769, 0.0746, 0.0949, 0.1179, 0.082, 0.1082, 0.066, 0.1328, 0.143, 0.166, 0.236, 0.2197, 0.2583, 0.2846, 0.3035, 0.2554, 0.2384, 0.1908, 0.1738, 0.1367, 0.1107, 0.0751, 0.1307, 0.0908, 0.1067, 0.1513, 0.0964, 0.0946, 0.1185, 0.069, 0.1148, 0.1181, 0.1005, 0.1344, 0.1485, 0.1829, 0.2349, 0.299, 0.3657, 0.437, 0.5399, 0.5887, 0.711, 0.7774, 0.8284, 0.8538, 0.8442, 0.8092, 0.7526, 0.6995, 0.5921, 0.5139, 0.397, 0.3377, 0.2668, 0.2322, 0.1794, 0.1653, 0.1932, 0.2494, 0.3333, 0.3449, 0.5016, 0.5231, 0.5187, 0.484, 0.4044, 0.3462, 0.2742, 0.1957, 0.1357, 0.1557, 0.1344, 0.1492, 0.1199, 0.1187, 0.1366, 0.1414, 0.1349, 0.1277, 0.155, 0.1721, 0.2369, 0.2867, 0.3169, 0.4118, 0.5791, 0.6902, 0.8398, 0.923, 1.0057, 1.0432, 1.0503, 1.0295, 0.8714, 0.7782, 0.6965, 0.549, 0.4524, 0.4026, 0.3412, 0.3671, 0.401, 0.4624, 0.5713, 0.6662, 0.7751, 0.8777, 0.8435, 0.8774, 0.8327, 0.7446, 0.6886, 0.5312, 0.4731, 0.4003, 0.2995, 0.2747, 0.2577]}, {"true": 84, "pred": 81.47, "spectrum": [0.0825, 0.1136, 0.1412, 0.0891, 0.102, 0.1086, 0.1567, 0.1038, 0.1495, 0.1641, 0.176, 0.1804, 0.2665, 0.2912, 0.3174, 0.3664, 0.3085, 0.314, 0.2684, 0.2469, 0.2191, 0.1701, 0.1318, 0.1108, 0.1352, 0.1121, 0.1247, 0.0957, 0.1298, 0.1221, 0.1073, 0.1165, 0.1462, 0.1646, 0.1347, 0.164, 0.1871, 0.2165, 0.2192, 0.3536, 0.375, 0.4768, 0.5476, 0.6473, 0.7255, 0.805, 0.8971, 0.9259, 0.9132, 0.9341, 0.8403, 0.7302, 0.6208, 0.5373, 0.4596, 0.3575, 0.284, 0.2511, 0.1947, 0.1826, 0.2424, 0.2403, 0.3075, 0.4093, 0.4706, 0.5259, 0.5643, 0.4855, 0.484, 0.3902, 0.286, 0.2226, 0.2086, 0.1672, 0.135, 0.1208, 0.1328, 0.1444, 0.1615, 0.1721, 0.1352, 0.1543, 0.1834, 0.1618, 0.2302, 0.2507, 0.3537, 0.4245, 0.5433, 0.6336, 0.7705, 0.9157, 0.9874, 1.0405, 1.0518, 1.0277, 0.9626, 0.8459, 0.7114, 0.5687, 0.5053, 0.3943, 0.3614, 0.3593, 0.4066, 0.5114, 0.521, 0.652, 0.7621, 0.8314, 0.8608, 0.8788, 0.8483, 0.7376, 0.6838, 0.5452, 0.4687, 0.3751, 0.2811, 0.2877, 0.2236]}, {"true": 86, "pred": 86.9, "spectrum": [0.0447, 0.0608, 0.0103, 0.0791, 0.05, 0.0806, 0.0349, 0.0143, 0.0511, 0.1102, 0.0966, 0.1417, 0.1682, 0.2482, 0.2739, 0.2535, 0.2664, 0.2477, 0.2044, 0.1343, 0.1017, 0.1088, 0.0348, 0.054, 0.0393, 0.0177, 0.0363, 0.0428, 0.0646, 0.0489, 0.0332, 0.0261, 0.0204, 0.045, 0.0647, 0.0464, 0.1033, 0.1147, 0.1436, 0.1823, 0.2722, 0.346, 0.4282, 0.541, 0.6317, 0.7038, 0.79, 0.834, 0.8787, 0.8475, 0.8192, 0.7163, 0.6233, 0.5563, 0.4001, 0.3155, 0.2658, 0.1973, 0.1223, 0.1132, 0.1255, 0.1708, 0.25, 0.2931, 0.3439, 0.4193, 0.4607, 0.4335, 0.3848, 0.2798, 0.2513, 0.1574, 0.0604, 0.0538, 0.0275, 0.0584, 0.049, 0.049, 0.0372, 0.0216, 0.0144, 0.0486, 0.0599, 0.0748, 0.0926, 0.115, 0.1642, 0.2035, 0.3399, 0.4762, 0.6178, 0.7819, 0.8373, 0.9639, 1.0347, 1.0377, 0.9938, 0.864, 0.7371, 0.6246, 0.435, 0.3987, 0.3547, 0.3254, 0.339, 0.4285, 0.4621, 0.6176, 0.697, 0.7433, 0.7913, 0.7876, 0.75, 0.6519, 0.5465, 0.4496, 0.3451, 0.2971, 0.2287, 0.1224, 0.1014]}, {"true": 88, "pred": 87.42, "spectrum": [0.0558, -0.0208, -0.0266, -0.0358, 0.0198, 0.0258, -0.0202, 0.0318, 0.0252, 0.0591, 0.0209, 0.0781, 0.0654, 0.1868, 0.2076, 0.2439, 0.3217, 0.2414, 0.2487, 0.1919, 0.1521, 0.1286, 0.0707, 0.0532, 0.0027, 0.0252, -0.0081, 0.0002, 0.0185, 0.0458, 0.0386, 0.0523, -0.0007, 0.0179, 0.0539, 0.0276, 0.1086, 0.1245, 0.1663, 0.2518, 0.36, 0.4277, 0.5267, 0.6472, 0.7518, 0.8136, 0.8974, 0.9902, 0.9996, 0.9429, 0.8351, 0.7457, 0.6071, 0.4925, 0.3995, 0.3047, 0.1901, 0.1423, 0.1516, 0.1741, 0.1218, 0.1183, 0.2293, 0.3161, 0.4183, 0.4339, 0.4898, 0.4453, 0.3934, 0.3113, 0.2412, 0.1504, 0.1091, 0.0741, 0.0841, 0.0395, 0.0713, 0.037, 0.0231, 0.0359, 0.0445, 0.0897, 0.0596, 0.067, 0.0783, 0.1611, 0.2341, 0.3317, 0.4406, 0.6011, 0.7372, 0.8932, 1.0371, 1.1115, 1.1872, 1.1659, 1.0681, 0.9762, 0.7994, 0.6161, 0.5448, 0.4199, 0.3331, 0.3231, 0.3546, 0.4233, 0.5225, 0.595, 0.7277, 0.8259, 0.9263, 0.9598, 0.8769, 0.8672, 0.7317, 0.599, 0.5076, 0.4006, 0.2948, 0.225, 0.1893]}, {"true": 90, "pred": 88.92, "spectrum": [0.0878, 0.0616, 0.0864, 0.036, 0.0638, 0.0302, 0.0582, 0.0827, 0.0666, 0.1228, 0.0986, 0.1193, 0.1947, 0.2353, 0.2663, 0.2611, 0.3111, 0.3113, 0.2705, 0.1626, 0.1347, 0.0851, 0.0854, 0.0645, 0.0339, 0.0763, 0.0839, 0.0741, 0.0672, 0.0256, 0.0923, 0.0336, 0.0862, 0.0687, 0.0585, 0.1146, 0.146, 0.1487, 0.181, 0.2544, 0.2778, 0.3569, 0.4531, 0.5441, 0.6442, 0.7229, 0.8283, 0.8275, 0.8584, 0.8053, 0.7508, 0.6535, 0.5441, 0.4288, 0.3627, 0.2419, 0.1933, 0.1348, 0.1074, 0.1225, 0.14, 0.1969, 0.2385, 0.2973, 0.3691, 0.3811, 0.375, 0.3413, 0.3146, 0.2383, 0.1796, 0.1147, 0.1106, 0.0795, 0.0566, 0.0499, 0.0468, 0.0252, 0.0623, 0.0536, 0.0384, 0.048, 0.0765, 0.0588, 0.0832, 0.1489, 0.2723, 0.3588, 0.4915, 0.5971, 0.7229, 0.8394, 0.927, 0.9585, 0.9208, 0.8572, 0.7734, 0.6601, 0.5003, 0.3705, 0.3196, 0.2723, 0.2237, 0.2212, 0.2581, 0.3296, 0.4383, 0.5659, 0.6293, 0.6575, 0.6999, 0.6569, 0.6554, 0.5528, 0.4722, 0.3578, 0.3099, 0.2229, 0.1569, 0.1206, 0.0463]}, {"true": 92, "pred": 89.97, "spectrum": [-0.075, -0.0689, -0.0333, -0.068, -0.03, -0.0227, -0.0332, -0.0295, -0.0403, -0.0401, 0.0079, 0.0089, 0.07, 0.0828, 0.1124, 0.1559, 0.1619, 0.1262, 0.1174, 0.0628, -0.0272, -0.0248, -0.0233, -0.0411, -0.0536, -0.068, -0.0483, -0.0376, -0.0519, -0.0508, -0.0553, -0.0196, -0.0388, -0.0298, -0.0251, 0.0181, 0.0229, 0.0295, 0.0417, 0.0857, 0.1341, 0.1832, 0.2902, 0.3564, 0.4051, 0.5004, 0.5531, 0.6441, 0.6051, 0.5671, 0.5582, 0.4407, 0.3686, 0.3032, 0.2359, 0.1599, 0.0536, 0.0492, 0.0219, 0.0254, 0.0531, 0.0564, 0.0995, 0.1721, 0.18, 0.2376, 0.2753, 0.2239, 0.1726, 0.1175, 0.0774, 0.0047, 0.0343, 0.0094, -0.0039, 0.0128, 0.0088, -0.0344, -0.0284, -0.0142, -0.042, -0.0085, -0.0031, -0.0046, 0.0149, 0.0993, 0.1173, 0.166, 0.2916, 0.3489, 0.4945, 0.5609, 0.6074, 0.6638, 0.6863, 0.6383, 0.5846, 0.4997, 0.4021, 0.3146, 0.248, 0.1833, 0.1805, 0.1656, 0.1856, 0.2545, 0.303, 0.4135, 0.4165, 0.4692, 0.483, 0.4771, 0.4495, 0.3681, 0.3115, 0.2462, 0.1891, 0.1217, 0.0923, 0.0572, 0.053]}, {"true": 94, "pred": 92.49, "spectrum": [0.0096, 0.0247, 0.0206, 0.0184, 0.0267, 0.0432, 0.024, 0.0568, 0.0533, -0.0062, 0.0458, 0.0812, 0.0853, 0.1472, 0.1714, 0.2196, 0.2327, 0.214, 0.2416, 0.1823, 0.1236, 0.1126, 0.0773, 0.0475, 0.0648, 0.0772, 0.0505, 0.0505, 0.03, 0.0418, 0.0164, 0.0301, 0.0824, -0.0058, 0.0601, 0.0401, 0.0849, 0.0781, 0.0732, 0.1905, 0.2333, 0.2589, 0.3596, 0.4123, 0.5164, 0.6373, 0.7148, 0.7418, 0.714, 0.7426, 0.6863, 0.6593, 0.4908, 0.4612, 0.3545, 0.2706, 0.2052, 0.1567, 0.1219, 0.0985, 0.1054, 0.1447, 0.1804, 0.2428, 0.2689, 0.2853, 0.3249, 0.3203, 0.2514, 0.2258, 0.1965, 0.1241, 0.0981, 0.0568, 0.0742, 0.0152, 0.0254, 0.0618, 0.0393, 0.0452, 0.0144, 0.0262, 0.0281, 0.0672, 0.1289, 0.1514, 0.2124, 0.3177, 0.4389, 0.5796, 0.6545, 0.7989, 0.8709, 0.9391, 0.9098, 0.8342, 0.7763, 0.6155, 0.4809, 0.3771, 0.2803, 0.2522, 0.2323, 0.2212, 0.2352, 0.2904, 0.3562, 0.4652, 0.5594, 0.6202, 0.6847, 0.6823, 0.6588, 0.5814, 0.4729, 0.3685, 0.2783, 0.2112, 0.1548, 0.1143, 0.0392]}, {"true": 96, "pred": 95.27, "spectrum": [-0.0115, -0.0134, -0.0415, -0.0004, 0.0099, -0.0129, 0.0314, -0.001, -0.0351, 0.0445, -0.0161, 0.0443, 0.0941, 0.1151, 0.2144, 0.2489, 0.2562, 0.2783, 0.2127, 0.1525, 0.1165, 0.0791, 0.0521, 0.0238, -0.0028, 0.0047, 0.0202, 0.0311, 0.0033, -0.0164, 0.0019, 0.0246, -0.0118, 0.0286, 0.0525, 0.0027, 0.0771, 0.0794, 0.0996, 0.18, 0.2925, 0.3452, 0.4969, 0.6497, 0.761, 0.8602, 0.9844, 1.0169, 1.0019, 0.9859, 0.8861, 0.8105, 0.7161, 0.5454, 0.4567, 0.285, 0.2287, 0.1488, 0.1336, 0.1701, 0.1534, 0.1655, 0.255, 0.3422, 0.3943, 0.4268, 0.404, 0.4062, 0.3617, 0.2897, 0.2204, 0.1601, 0.0899, 0.1105, 0.0889, 0.0964, 0.0992, 0.0431, 0.0466, 0.0796, 0.0942, 0.0746, 0.1382, 0.1027, 0.1594, 0.1906, 0.2427, 0.3156, 0.4705, 0.619, 0.7358, 0.888, 0.9753, 1.0769, 1.1602, 1.1323, 1.1156, 0.9723, 0.8247, 0.6654, 0.5806, 0.5041, 0.4298, 0.4158, 0.4289, 0.5256, 0.652, 0.7579, 0.8113, 0.8799, 0.8504, 0.8069, 0.755, 0.669, 0.549, 0.4328, 0.3296, 0.287, 0.2406, 0.1908, 0.1532]}, {"true": 98, "pred": 96.81, "spectrum": [-0.025, -0.0148, -0.0381, -0.0069, -0.0003, -0.0284, -0.0129, -0.0055, -0.0008, 0.0129, 0.0416, 0.0619, 0.1392, 0.1526, 0.193, 0.2267, 0.227, 0.2249, 0.1821, 0.1387, 0.0729, 0.0164, 0.0351, -0.0241, -0.0255, -0.002, 0.0171, -0.0052, -0.0034, -0.0372, -0.0262, -0.0115, -0.0347, -0.0087, -0.023, -0.0046, 0.0028, 0.0104, 0.075, 0.1093, 0.1681, 0.234, 0.3553, 0.4551, 0.6041, 0.673, 0.785, 0.8435, 0.8518, 0.8312, 0.7698, 0.6644, 0.5727, 0.4598, 0.3315, 0.2351, 0.1489, 0.1146, 0.0482, 0.0282, 0.0166, 0.0573, 0.1161, 0.1848, 0.2161, 0.2777, 0.2936, 0.2625, 0.2199, 0.174, 0.1277, 0.0839, 0.012, 0.0114, -0.0065, -0.0657, -0.0261, -0.0526, -0.0173, -0.0287, -0.0257, -0.0358, 0.0128, 0.0259, 0.0265, 0.0816, 0.1846, 0.2411, 0.3926, 0.5375, 0.639, 0.7808, 0.9184, 0.9315, 0.9309, 0.8257, 0.7877, 0.5897, 0.5184, 0.3635, 0.2795, 0.2304, 0.1469, 0.1611, 0.2165, 0.256, 0.3076, 0.4465, 0.5167, 0.6118, 0.643, 0.6139, 0.5902, 0.5838, 0.4334, 0.3581, 0.2624, 0.1437, 0.0945, 0.021, 0.0188]}, {"true": 100, "pred": 96.1, "spectrum": [-0.0481, -0.061, -0.0849, -0.0716, -0.0523, -0.0471, -0.0481, -0.0623, -0.0947, -0.0427, -0.0455, -0.0126, 0.0225, 0.0389, 0.1105, 0.1394, 0.1547, 0.1186, 0.0873, 0.0266, 0.0433, -0.0356, -0.0385, -0.0671, -0.0729, -0.0858, -0.1018, -0.114, -0.1015, -0.0866, -0.0672, -0.0976, -0.1165, -0.076, -0.1288, -0.04, -0.0756, -0.0673, -0.0281, 0.0342, 0.0496, 0.1646, 0.2374, 0.375, 0.5034, 0.6055, 0.6838, 0.7091, 0.7267, 0.7083, 0.6693, 0.544, 0.4528, 0.3106, 0.2356, 0.1238, 0.0717, 0.0211, -0.0487, -0.047, -0.0544, 0.003, 0.0237, 0.0932, 0.1264, 0.1407, 0.1437, 0.1381, 0.0967, 0.0354, 0.0214, -0.0333, -0.0528, -0.1422, -0.1079, -0.1508, -0.1608, -0.1414, -0.1681, -0.133, -0.1592, -0.1353, -0.0966, -0.12, -0.0825, -0.0074, 0.0658, 0.1119, 0.2103, 0.3483, 0.5296, 0.6581, 0.7218, 0.7733, 0.8073, 0.7323, 0.656, 0.5506, 0.418, 0.3037, 0.1779, 0.0571, 0.0483, 0.0512, 0.1039, 0.1442, 0.2215, 0.319, 0.4308, 0.4513, 0.4936, 0.4623, 0.4375, 0.328, 0.2419, 0.1191, 0.0087, -0.0442, -0.0827, -0.1351, -0.1267]}], "endmembers": {"cotton": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0001, 0.0004, 0.0014, 0.0042, 0.011, 0.0252, 0.0508, 0.0901, 0.1408, 0.1937, 0.2346, 0.25, 0.2346, 0.1937, 0.1408, 0.0901, 0.0508, 0.0252, 0.011, 0.0042, 0.0014, 0.0004, 0.0001, 0.0001, 0.0001, 0.0003, 0.0007, 0.0016, 0.0035, 0.0071, 0.0139, 0.0257, 0.0454, 0.0762, 0.1218, 0.1853, 0.2684, 0.37, 0.4855, 0.6063, 0.7207, 0.8154, 0.878, 0.9, 0.8781, 0.8154, 0.7207, 0.6063, 0.4855, 0.3703, 0.2692, 0.1876, 0.1275, 0.0894, 0.0728, 0.0774, 0.1024, 0.1445, 0.1968, 0.2484, 0.2864, 0.3003, 0.2858, 0.2468, 0.1933, 0.1374, 0.0885, 0.0517, 0.0274, 0.0132, 0.0058, 0.0024, 0.0011, 0.001, 0.0018, 0.0039, 0.0083, 0.0169, 0.0324, 0.0587, 0.1007, 0.163, 0.2494, 0.3604, 0.4923, 0.6354, 0.7748, 0.8928, 0.9721, 1.0002, 0.9727, 0.8943, 0.7784, 0.6432, 0.5083, 0.3912, 0.305, 0.2577, 0.2521, 0.286, 0.3529, 0.4415, 0.5367, 0.6216, 0.6802, 0.7007, 0.6787, 0.6179, 0.5284, 0.4246, 0.3205, 0.2273, 0.1514, 0.0947, 0.0557, 0.0308], "polyester": [0.0, 0.0, 0.0002, 0.0009, 0.0031, 0.0093, 0.0244, 0.0551, 0.1072, 0.1799, 0.2604, 0.325, 0.35, 0.325, 0.2604, 0.1799, 0.1072, 0.0551, 0.0244, 0.0093, 0.0031, 0.0009, 0.0002, 0.0001, 0.0001, 0.0002, 0.0005, 0.0012, 0.0028, 0.0061, 0.0125, 0.0242, 0.0438, 0.0744, 0.1189, 0.1786, 0.2518, 0.3336, 0.4152, 0.4854, 0.5331, 0.55, 0.5331, 0.4854, 0.4152, 0.3336, 0.2518, 0.1786, 0.1189, 0.0744, 0.0438, 0.0242, 0.0126, 0.0062, 0.0031, 0.0022, 0.0038, 0.0096, 0.0243, 0.0559, 0.115, 0.212, 0.3494, 0.5156, 0.6806, 0.8041, 0.85, 0.8041, 0.6806, 0.5156, 0.3494, 0.212, 0.115, 0.0559, 0.0243, 0.0096, 0.0038, 0.0023, 0.0034, 0.0069, 0.0141, 0.0272, 0.0491, 0.0825, 0.1294, 0.1893, 0.2586, 0.3295, 0.3918, 0.4347, 0.45, 0.4347, 0.3918, 0.3295, 0.2586, 0.1894, 0.1296, 0.0829, 0.0501, 0.0296, 0.0192, 0.017, 0.0225, 0.0364, 0.061, 0.0989, 0.1533, 0.2257, 0.3157, 0.4195, 0.5292, 0.6341, 0.7215, 0.7796, 0.8, 0.7796, 0.7215, 0.6341, 0.5292, 0.4195, 0.3157]}, "batch": [{"true": 0.0, "pred": 3.8}, {"true": 64.6, "pred": 64.8}, {"true": 50.8, "pred": 50.5}, {"true": 31.9, "pred": 27.7}, {"true": 33.0, "pred": 32.9}, {"true": 100.0, "pred": 97.5}, {"true": 99.3, "pred": 97.1}, {"true": 0.0, "pred": 4.1}, {"true": 62.6, "pred": 63.5}, {"true": 38.3, "pred": 39.9}, {"true": 98.8, "pred": 97.2}, {"true": 99.3, "pred": 97.4}], "parity": [{"t": 50.6, "p": 48.3}, {"t": 56.5, "p": 56.8}, {"t": 51.2, "p": 48.4}, {"t": 97.2, "p": 94.5}, {"t": 61.5, "p": 63.4}, {"t": 56.8, "p": 57.2}, {"t": 28.7, "p": 28.4}, {"t": 55.5, "p": 56.9}, {"t": 46.8, "p": 45.8}, {"t": 61.0, "p": 61.3}, {"t": 93.0, "p": 91.5}, {"t": 24.6, "p": 28.5}, {"t": 30.9, "p": 32.9}, {"t": 39.1, "p": 38.1}, {"t": 27.0, "p": 27.3}, {"t": 35.0, "p": 35.2}, {"t": 93.6, "p": 93.3}, {"t": 37.8, "p": 36.9}, {"t": 77.5, "p": 77.8}, {"t": 4.1, "p": 4.9}, {"t": 29.9, "p": 26.4}, {"t": 70.3, "p": 70.7}, {"t": 45.2, "p": 46.3}, {"t": 89.0, "p": 88.5}, {"t": 43.5, "p": 42.7}, {"t": 62.4, "p": 66.4}, {"t": 58.5, "p": 56.1}, {"t": 59.9, "p": 63.3}, {"t": 65.6, "p": 62.4}, {"t": 51.1, "p": 50.2}, {"t": 19.4, "p": 24.1}, {"t": 6.9, "p": 9.8}, {"t": 25.2, "p": 29.0}, {"t": 9.5, "p": 7.9}, {"t": 11.3, "p": 9.3}, {"t": 28.1, "p": 25.5}, {"t": 59.3, "p": 58.7}, {"t": 34.3, "p": 33.9}, {"t": 77.8, "p": 78.7}, {"t": 96.5, "p": 96.0}, {"t": 33.2, "p": 35.0}, {"t": 23.6, "p": 23.7}, {"t": 68.8, "p": 70.5}, {"t": 57.3, "p": 60.0}, {"t": 77.0, "p": 75.6}, {"t": 61.7, "p": 59.2}, {"t": 28.0, "p": 24.0}, {"t": 91.1, "p": 87.2}, {"t": 57.3, "p": 60.6}, {"t": 71.8, "p": 72.2}, {"t": 67.2, "p": 65.2}, {"t": 77.0, "p": 76.2}, {"t": 75.2, "p": 74.5}, {"t": 41.0, "p": 42.3}, {"t": 3.8, "p": 4.5}, {"t": 48.5, "p": 49.4}, {"t": 89.5, "p": 87.0}, {"t": 14.5, "p": 15.5}, {"t": 78.2, "p": 80.7}, {"t": 65.5, "p": 65.0}, {"t": 70.6, "p": 69.5}, {"t": 21.8, "p": 23.6}, {"t": 7.5, "p": 5.3}, {"t": 26.8, "p": 20.8}, {"t": 62.3, "p": 64.7}, {"t": 38.9, "p": 42.9}, {"t": 25.5, "p": 24.2}, {"t": 39.7, "p": 42.2}, {"t": 72.8, "p": 71.8}, {"t": 25.6, "p": 23.6}, {"t": 54.5, "p": 54.5}, {"t": 40.6, "p": 40.9}, {"t": 99.3, "p": 94.5}, {"t": 85.4, "p": 86.7}, {"t": 72.3, "p": 73.3}, {"t": 55.1, "p": 53.6}, {"t": 39.8, "p": 36.1}, {"t": 67.8, "p": 64.9}, {"t": 84.2, "p": 86.3}, {"t": 14.0, "p": 15.9}, {"t": 4.0, "p": 5.6}, {"t": 46.0, "p": 46.5}, {"t": 27.0, "p": 27.6}, {"t": 88.5, "p": 88.7}, {"t": 26.4, "p": 27.4}, {"t": 91.3, "p": 89.0}, {"t": 50.1, "p": 52.9}, {"t": 83.5, "p": 85.0}, {"t": 45.3, "p": 42.1}, {"t": 71.6, "p": 72.9}, {"t": 97.8, "p": 98.1}, {"t": 16.6, "p": 15.0}, {"t": 25.8, "p": 26.1}, {"t": 51.6, "p": 46.6}, {"t": 37.9, "p": 37.4}, {"t": 80.2, "p": 76.7}, {"t": 92.3, "p": 94.1}, {"t": 57.3, "p": 56.8}, {"t": 13.3, "p": 15.2}, {"t": 37.7, "p": 36.6}, {"t": 30.5, "p": 37.0}, {"t": 64.5, "p": 63.8}, {"t": 25.4, "p": 23.4}, {"t": 8.5, "p": 8.6}, {"t": 51.1, "p": 47.3}, {"t": 28.0, "p": 30.4}, {"t": 49.7, "p": 52.5}, {"t": 34.6, "p": 35.0}, {"t": 76.5, "p": 76.2}, {"t": 25.8, "p": 21.1}, {"t": 73.1, "p": 74.1}, {"t": 11.5, "p": 13.2}, {"t": 78.0, "p": 76.6}, {"t": 99.7, "p": 97.2}, {"t": 28.1, "p": 28.2}, {"t": 100.0, "p": 97.9}, {"t": 62.2, "p": 63.2}, {"t": 57.0, "p": 55.6}, {"t": 25.6, "p": 23.5}, {"t": 67.0, "p": 65.9}, {"t": 44.7, "p": 46.4}, {"t": 59.3, "p": 60.1}, {"t": 47.9, "p": 49.4}, {"t": 78.2, "p": 76.5}, {"t": 52.7, "p": 47.9}, {"t": 33.3, "p": 33.7}, {"t": 31.8, "p": 33.2}, {"t": 56.0, "p": 57.1}, {"t": 96.7, "p": 94.5}, {"t": 10.2, "p": 7.5}, {"t": 2.1, "p": 5.2}, {"t": 45.0, "p": 44.6}, {"t": 18.1, "p": 15.2}, {"t": 90.8, "p": 90.0}, {"t": 56.8, "p": 54.6}, {"t": 82.0, "p": 80.4}, {"t": 81.8, "p": 82.2}, {"t": 1.1, "p": 3.0}, {"t": 88.0, "p": 87.7}, {"t": 42.5, "p": 43.9}, {"t": 22.7, "p": 22.2}, {"t": 86.8, "p": 86.2}, {"t": 83.4, "p": 81.7}, {"t": 87.2, "p": 89.1}, {"t": 88.6, "p": 90.2}, {"t": 95.8, "p": 95.9}, {"t": 25.5, "p": 26.4}, {"t": 24.2, "p": 26.0}, {"t": 5.7, "p": 5.8}, {"t": 75.0, "p": 74.5}, {"t": 37.4, "p": 41.1}, {"t": 67.0, "p": 67.9}, {"t": 80.2, "p": 82.8}, {"t": 25.6, "p": 27.6}, {"t": 99.3, "p": 95.1}, {"t": 59.8, "p": 59.8}, {"t": 89.1, "p": 91.6}, {"t": 51.5, "p": 49.7}, {"t": 91.1, "p": 90.4}, {"t": 48.8, "p": 49.3}, {"t": 81.0, "p": 81.5}, {"t": 37.7, "p": 35.8}, {"t": 0.0, "p": 2.8}, {"t": 72.5, "p": 73.6}, {"t": 11.4, "p": 12.7}, {"t": 94.5, "p": 95.2}, {"t": 56.6, "p": 56.9}, {"t": 36.1, "p": 33.4}, {"t": 77.1, "p": 80.1}, {"t": 95.2, "p": 94.2}, {"t": 40.7, "p": 41.3}, {"t": 70.0, "p": 68.7}, {"t": 42.6, "p": 39.6}, {"t": 12.3, "p": 9.7}, {"t": 16.9, "p": 17.4}, {"t": 85.1, "p": 85.7}, {"t": 45.8, "p": 42.2}, {"t": 34.9, "p": 38.4}, {"t": 32.3, "p": 37.8}, {"t": 34.7, "p": 32.2}, {"t": 29.4, "p": 33.0}, {"t": 79.1, "p": 78.2}, {"t": 70.4, "p": 70.6}, {"t": 59.6, "p": 62.3}, {"t": 79.3, "p": 82.4}, {"t": 11.2, "p": 11.4}, {"t": 83.8, "p": 83.5}, {"t": 24.3, "p": 24.9}, {"t": 11.4, "p": 11.2}, {"t": 52.3, "p": 52.2}, {"t": 36.3, "p": 34.3}, {"t": 71.3, "p": 69.8}, {"t": 75.5, "p": 74.7}, {"t": 84.4, "p": 86.3}, {"t": 18.0, "p": 19.2}, {"t": 65.8, "p": 69.2}, {"t": 34.2, "p": 35.2}, {"t": 67.0, "p": 66.0}, {"t": 73.0, "p": 73.3}, {"t": 82.2, "p": 83.2}, {"t": 43.4, "p": 41.7}, {"t": 50.1, "p": 49.2}, {"t": 56.9, "p": 58.1}, {"t": 54.0, "p": 53.5}, {"t": 81.1, "p": 84.2}, {"t": 33.8, "p": 31.3}, {"t": 84.8, "p": 83.5}, {"t": 15.5, "p": 11.5}, {"t": 72.0, "p": 72.5}, {"t": 72.8, "p": 72.5}, {"t": 59.4, "p": 59.7}, {"t": 25.9, "p": 25.9}, {"t": 60.9, "p": 63.1}, {"t": 21.2, "p": 19.0}, {"t": 5.0, "p": 5.5}, {"t": 76.5, "p": 77.8}, {"t": 41.0, "p": 42.6}, {"t": 24.0, "p": 19.2}, {"t": 71.8, "p": 68.4}, {"t": 36.6, "p": 34.2}, {"t": 57.2, "p": 56.1}, {"t": 31.1, "p": 32.9}, {"t": 13.9, "p": 14.0}, {"t": 21.6, "p": 19.5}, {"t": 28.3, "p": 23.8}, {"t": 50.7, "p": 52.0}, {"t": 65.1, "p": 65.8}, {"t": 96.6, "p": 94.1}, {"t": 59.2, "p": 58.8}, {"t": 96.6, "p": 96.7}, {"t": 16.7, "p": 18.3}, {"t": 8.4, "p": 7.6}, {"t": 10.0, "p": 12.7}, {"t": 40.2, "p": 35.1}, {"t": 37.5, "p": 39.9}, {"t": 79.2, "p": 81.9}, {"t": 3.1, "p": 4.9}, {"t": 59.3, "p": 57.4}, {"t": 97.4, "p": 96.7}, {"t": 34.5, "p": 32.8}, {"t": 52.6, "p": 50.3}, {"t": 62.2, "p": 61.8}, {"t": 61.5, "p": 62.2}, {"t": 54.3, "p": 57.7}, {"t": 41.4, "p": 41.5}, {"t": 39.3, "p": 38.8}, {"t": 12.7, "p": 14.7}, {"t": 79.6, "p": 79.6}, {"t": 91.8, "p": 92.0}, {"t": 16.4, "p": 16.2}, {"t": 15.5, "p": 18.6}, {"t": 99.4, "p": 96.0}, {"t": 0.5, "p": 3.4}, {"t": 84.1, "p": 84.6}, {"t": 95.8, "p": 97.1}, {"t": 74.3, "p": 72.2}, {"t": 25.6, "p": 24.4}, {"t": 77.5, "p": 79.8}, {"t": 61.4, "p": 60.9}, {"t": 72.4, "p": 74.8}, {"t": 48.8, "p": 47.7}, {"t": 30.2, "p": 27.9}, {"t": 93.2, "p": 95.1}, {"t": 56.2, "p": 57.7}, {"t": 34.2, "p": 35.5}, {"t": 18.5, "p": 15.9}, {"t": 67.6, "p": 67.8}, {"t": 11.3, "p": 9.1}, {"t": 58.6, "p": 60.0}, {"t": 52.5, "p": 55.1}, {"t": 97.2, "p": 95.0}, {"t": 82.3, "p": 82.9}, {"t": 33.0, "p": 32.3}, {"t": 47.0, "p": 45.8}, {"t": 98.3, "p": 93.0}, {"t": 83.0, "p": 80.7}, {"t": 9.1, "p": 10.4}, {"t": 71.5, "p": 73.1}, {"t": 77.8, "p": 76.1}, {"t": 99.7, "p": 97.9}, {"t": 81.5, "p": 87.9}, {"t": 93.6, "p": 92.0}, {"t": 96.1, "p": 96.7}, {"t": 14.5, "p": 16.6}, {"t": 92.6, "p": 91.4}, {"t": 3.2, "p": 5.7}, {"t": 67.8, "p": 67.4}, {"t": 85.0, "p": 81.5}, {"t": 39.8, "p": 40.2}, {"t": 85.7, "p": 83.7}, {"t": 67.0, "p": 66.8}, {"t": 65.2, "p": 64.2}, {"t": 59.1, "p": 63.4}, {"t": 14.7, "p": 16.2}, {"t": 97.6, "p": 96.2}, {"t": 68.7, "p": 67.2}, {"t": 85.8, "p": 86.4}, {"t": 33.7, "p": 33.7}, {"t": 14.4, "p": 13.1}, {"t": 68.5, "p": 70.6}], "model": {"kind": "rf", "preprocessing": "snv+sg1"}, "metrics": {"n_samples": 1500, "n_wavelengths": 601, "wavelength_range_nm": [1000.0, 2200.0], "baseline_PLS_raw": {"MAE_pp": 3.3774064893399696, "RMSE_pp": 4.458154988073617, "R2": 0.9767695337509598}, "best_model": "RF \u00b7 snv+sg1", "best_metrics": {"MAE_pp": 1.6519174717535539, "RMSE_pp": 2.045933439693164, "R2": 0.995107502611788, "max_abs_err_pp": 6.818888291715481}, "improvement_MAE_pp_vs_baseline": 1.7254890175864157}, "benchmark": [["model", "preprocessing", "MAE_pp", "RMSE_pp", "R2", "max_abs_err_pp"], ["RF", "snv+sg1", "1.6519174717535539", "2.045933439693164", "0.995107502611788", "6.818888291715481"], ["PLS", "snv+sg1", "1.971918190046577", "2.4994046757320065", "0.9926983542795045", "8.755278250866589"], ["PLS", "snv", "2.1195456625468627", "2.6693573597634455", "0.9916716102953836", "10.679768498524489"], ["PLS", "none", "3.3774064893399696", "4.458154988073617", "0.9767695337509598", "14.689262174473214"], ["PLS", "sg1", "3.493929859001101", "4.550071091558597", "0.9758017496488595", "14.124259351435285"]]}</script>
+<script>
+(function(){
+"use strict";
+var D = JSON.parse(document.getElementById("fb-data").textContent);
+var WL = D.wavelengths, ROWS = D.rows, NS = "http://www.w3.org/2000/svg";
+var tip = document.getElementById("tip");
+
+function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function path(xs,ys,sx,sy){var d="";for(var i=0;i<xs.length;i++){d+=(i?"L":"M")+sx(xs[i]).toFixed(2)+" "+sy(ys[i]).toFixed(2);}return d;}
+function showTip(e,txt){tip.textContent=txt;tip.style.opacity="1";
+  var x=e.clientX+13,y=e.clientY-11;
+  if(x+tip.offsetWidth>innerWidth-8)x=e.clientX-tip.offsetWidth-13;
+  tip.style.left=x+"px";tip.style.top=y+"px";}
+function hideTip(){tip.style.opacity="0";}
+
+/* shared y-range across every spectrum so traces are comparable */
+var allV=[].concat(D.endmembers.cotton,D.endmembers.polyester);
+ROWS.forEach(function(r){allV=allV.concat(r.spectrum);});
+var vMin=Math.min.apply(null,allV), vMax=Math.max.apply(null,allV), pad=(vMax-vMin)*0.08;
+vMin-=pad; vMax+=pad;
+
+/* ---------------- spectrum (live) ---------------- */
+var S={w:640,h:268,l:48,r:16,t:12,b:32};
+var sx=function(w){return S.l+(w-WL[0])/(WL[WL.length-1]-WL[0])*(S.w-S.l-S.r);};
+var sy=function(v){return S.t+(1-(v-vMin)/(vMax-vMin))*(S.h-S.t-S.b);};
+var spec=document.getElementById("spec"), liveP, hair, hairOn=false;
+
+function drawFrame(svg,g,X,Y,ticks,xlabel,ylabel){
+  ticks.forEach(function(w){
+    g.appendChild(el("line",{x1:X(w),y1:S.t,x2:X(w),y2:S.h-S.b,class:"gridline"}));
+    var t=el("text",{x:X(w),y:S.h-S.b+16,class:"axlab","text-anchor":"middle"});
+    t.textContent=w; g.appendChild(t);
+  });
+  var yt=el("text",{x:S.l,y:S.t-1,class:"axlab","text-anchor":"start"});
+  yt.textContent=ylabel; g.appendChild(yt);
+  var xt=el("text",{x:S.w-S.r,y:S.h-S.b+29,class:"axlab","text-anchor":"end"});
+  xt.textContent=xlabel; g.appendChild(xt);
+}
+
+function buildSpec(){
+  spec.textContent="";
+  var g=el("g",{}); spec.appendChild(g);
+  drawFrame(spec,g,sx,sy,[1000,1400,1800,2200],"kind of light \u2192","how much light the fabric soaks up");
+  g.appendChild(el("path",{d:path(WL,D.endmembers.cotton,sx,sy),fill:"none",
+    stroke:css("--cotton"),"stroke-width":2,opacity:.34,"stroke-linejoin":"round"}));
+  g.appendChild(el("path",{d:path(WL,D.endmembers.polyester,sx,sy),fill:"none",
+    stroke:css("--poly"),"stroke-width":2,opacity:.34,"stroke-linejoin":"round"}));
+  hair=el("line",{y1:S.t,y2:S.h-S.b,stroke:css("--ink-3"),"stroke-width":1,opacity:0});
+  g.appendChild(hair);
+  liveP=el("path",{fill:"none",stroke:css("--live"),"stroke-width":2.4,
+    "stroke-linejoin":"round","stroke-linecap":"round"});
+  g.appendChild(liveP);
+}
+
+function rowFor(pct){
+  var best=ROWS[0],bd=1e9;
+  ROWS.forEach(function(r){var d=Math.abs(r.true-pct);if(d<bd){bd=d;best=r;}});
+  return best;
+}
+
+var slider=document.getElementById("slider");
+function render(){
+  var pct=+slider.value, row=rowFor(pct);
+  liveP.setAttribute("d",path(WL,row.spectrum,sx,sy));
+
+  document.getElementById("mixlabel").textContent=row.true+"% cotton / "+(100-row.true)+"% polyester";
+  document.getElementById("bbc").style.flex=Math.max(row.true,0.001);
+  document.getElementById("bbp").style.flex=Math.max(100-row.true,0.001);
+
+  var p=row.pred, err=Math.abs(p-row.true);
+  document.getElementById("predbig").innerHTML=
+    p.toFixed(1)+'<span style="font-size:17px;color:var(--ink-3)">% cotton</span>';
+  document.getElementById("predsub").textContent=
+    "\u2026and "+(100-p).toFixed(1)+"% polyester. It was never shown the correct figure.";
+  var e=document.getElementById("errbig");
+  e.textContent=(err<0.05?"exactly right":err.toFixed(1)+" points out");
+  e.className="ro-big "+(err<=2.5?"err-good":"err-mid");
+  document.getElementById("errsub").textContent= err<=2.5
+    ? "Comfortably inside the typical accuracy of 1.65 points."
+    : "Wider than its typical 1.65 points \u2014 mixes like this one are the harder cases.";
+}
+
+spec.addEventListener("pointermove",function(ev){
+  var b=spec.getBoundingClientRect(), vx=(ev.clientX-b.left)/b.width*S.w;
+  if(vx<S.l||vx>S.w-S.r){hair.setAttribute("opacity",0);hideTip();hairOn=false;return;}
+  var frac=(vx-S.l)/(S.w-S.l-S.r), wl=WL[0]+frac*(WL[WL.length-1]-WL[0]);
+  var i=0,bd=1e9; WL.forEach(function(w,k){var d=Math.abs(w-wl);if(d<bd){bd=d;i=k;}});
+  hair.setAttribute("x1",sx(WL[i]));hair.setAttribute("x2",sx(WL[i]));
+  hair.setAttribute("opacity",.5); hairOn=true;
+  var row=rowFor(+slider.value);
+  showTip(ev,"your fabric soaks up "+row.spectrum[i].toFixed(2)+" here");
+});
+spec.addEventListener("pointerleave",function(){hair.setAttribute("opacity",0);hideTip();hairOn=false;});
+
+/* ---------------- endmembers ---------------- */
+function buildEnds(){
+  var E={w:620,h:250,l:44,r:64,t:14,b:30}, sv=document.getElementById("ends");
+  sv.textContent="";
+  var ex=function(w){return E.l+(w-WL[0])/(WL[WL.length-1]-WL[0])*(E.w-E.l-E.r);};
+  var ey=function(v){return E.t+(1-(v-vMin)/(vMax-vMin))*(E.h-E.t-E.b);};
+  var g=el("g",{}); sv.appendChild(g);
+  [1120,1660].forEach(function(c){
+    g.appendChild(el("rect",{x:ex(c-55),y:E.t,width:ex(c+55)-ex(c-55),height:E.h-E.t-E.b,
+      fill:css("--ink"),opacity:.055}));
+    var t=el("text",{x:ex(c),y:E.t+12,class:"axlab","text-anchor":"middle"});
+    t.textContent=c+" nm"; g.appendChild(t);
+  });
+  [1000,1400,1800,2200].forEach(function(w){
+    g.appendChild(el("line",{x1:ex(w),y1:E.t,x2:ex(w),y2:E.h-E.b,class:"gridline"}));
+    var t=el("text",{x:ex(w),y:E.h-E.b+16,class:"axlab","text-anchor":"middle"});
+    t.textContent=w; g.appendChild(t);
+  });
+  g.appendChild(el("path",{d:path(WL,D.endmembers.cotton,ex,ey),fill:"none",
+    stroke:css("--cotton"),"stroke-width":2.2,"stroke-linejoin":"round"}));
+  g.appendChild(el("path",{d:path(WL,D.endmembers.polyester,ex,ey),fill:"none",
+    stroke:css("--poly"),"stroke-width":2.2,"stroke-linejoin":"round"}));
+  var n=WL.length-1;
+  var lc=el("text",{x:ex(WL[n])+7,y:ey(D.endmembers.cotton[n])+4,class:"axlab",
+    fill:css("--cotton")}); lc.textContent="Cotton"; g.appendChild(lc);
+  var lp=el("text",{x:ex(WL[n])+7,y:ey(D.endmembers.polyester[n])+4,class:"axlab",
+    fill:css("--poly")}); lp.textContent="Polyester"; g.appendChild(lp);
+  var xt=el("text",{x:E.w-E.r,y:E.h-E.b+28,class:"axlab","text-anchor":"end"});
+  xt.textContent="kind of light \u2192"; g.appendChild(xt);
+}
+
+/* ---------------- parity ---------------- */
+function buildParity(){
+  var P={w:480,h:400,l:46,r:14,t:14,b:40}, sv=document.getElementById("parity");
+  sv.textContent="";
+  var px=function(v){return P.l+v/100*(P.w-P.l-P.r);};
+  var py=function(v){return P.t+(1-v/100)*(P.h-P.t-P.b);};
+  var g=el("g",{}); sv.appendChild(g);
+  [0,25,50,75,100].forEach(function(v){
+    g.appendChild(el("line",{x1:P.l,y1:py(v),x2:P.w-P.r,y2:py(v),class:"gridline"}));
+    var yt=el("text",{x:P.l-8,y:py(v)+4,class:"axlab","text-anchor":"end"});
+    yt.textContent=v; g.appendChild(yt);
+    var xt=el("text",{x:px(v),y:P.h-P.b+17,class:"axlab","text-anchor":"middle"});
+    xt.textContent=v; g.appendChild(xt);
+  });
+  g.appendChild(el("line",{x1:px(0),y1:py(0),x2:px(100),y2:py(100),
+    stroke:css("--ink-3"),"stroke-width":1.5,"stroke-dasharray":"5 4"}));
+  var lbl=el("text",{x:px(62),y:py(62)-11,class:"axlab","text-anchor":"start",
+    fill:css("--ink-3")}); lbl.textContent="a perfect answer lands here"; g.appendChild(lbl);
+  D.parity.forEach(function(d){
+    var c=el("circle",{cx:px(d.t),cy:py(d.p),r:4,fill:css("--live"),
+      "fill-opacity":.5,stroke:css("--panel"),"stroke-width":1.5});
+    c.addEventListener("pointerenter",function(ev){
+      showTip(ev,"really "+d.t+"% · prototype said "+d.p+"%");});
+    c.addEventListener("pointerleave",hideTip);
+    g.appendChild(c);
+  });
+  var xl=el("text",{x:(P.l+P.w-P.r)/2,y:P.h-6,class:"axlab","text-anchor":"middle"});
+  xl.textContent="how much cotton the fabric really had (%)"; g.appendChild(xl);
+  var yl=el("text",{x:P.l-34,y:(P.t+P.h-P.b)/2,class:"axlab","text-anchor":"middle",
+    transform:"rotate(-90 "+(P.l-34)+" "+((P.t+P.h-P.b)/2)+")"});
+  yl.textContent="what the prototype said (%)"; g.appendChild(yl);
+}
+
+/* ---------------- benchmark ---------------- */
+var NAMES={"RF|snv+sg1":"Our approach","PLS|snv+sg1":"Industry method, tidied up",
+  "PLS|snv":"Industry method, half tidied","PLS|none":"Industry method as used today",
+  "PLS|sg1":"Industry method, tidied differently"};
+function benchRows(){
+  return D.benchmark.slice(1).filter(function(r){return r.length>3;}).map(function(r){
+    return {key:r[0]+"|"+r[1],name:NAMES[r[0]+"|"+r[1]]||r[0]+" "+r[1],
+      mae:+r[2],worst:+r[5],r2:+r[4]};
+  }).sort(function(a,b){return a.mae-b.mae;});
+}
+function buildBench(){
+  var rows=benchRows(), B={w:480,h:250,l:0,r:44,t:8,b:24};
+  var sv=document.getElementById("bench"); sv.textContent="";
+  var max=Math.max.apply(null,rows.map(function(r){return r.mae;}))*1.02;
+  var bh=26, gap=(B.h-B.t-B.b-rows.length*bh)/(rows.length-1);
+  var g=el("g",{}); sv.appendChild(g);
+  rows.forEach(function(r,i){
+    var y=B.t+i*(bh+gap), w=Math.max(r.mae/max*(B.w-B.r-110),2), x0=110;
+    var lb=el("text",{x:x0-10,y:y+bh/2+4,class:"axlab","text-anchor":"end",
+      fill:css(i===0?"--ink":"--ink-2")});
+    lb.textContent=r.name; g.appendChild(lb);
+    var rad=4, p="M"+x0+" "+y+"H"+(x0+w-rad)+"a"+rad+" "+rad+" 0 0 1 "+rad+" "+rad+
+      "V"+(y+bh-rad)+"a"+rad+" "+rad+" 0 0 1 "+(-rad)+" "+rad+"H"+x0+"Z";
+    var bar=el("path",{d:p,fill:css(i===0?"--cotton":"--poly"),opacity:i===0?1:.62});
+    bar.addEventListener("pointerenter",function(ev){
+      showTip(ev,r.name+" \u00b7 misses by "+r.mae.toFixed(2)+" points typically");});
+    bar.addEventListener("pointerleave",hideTip);
+    g.appendChild(bar);
+    var v=el("text",{x:x0+w+8,y:y+bh/2+4,class:"axlab",fill:css(i===0?"--cotton":"--ink-2")});
+    v.textContent=r.mae.toFixed(2); g.appendChild(v);
+  });
+  var cap=el("text",{x:110,y:B.h-6,class:"axlab"});
+  cap.textContent="typical miss, in points (shorter is better)"; g.appendChild(cap);
+
+  var tb=document.getElementById("benchtable"); tb.textContent="";
+  rows.forEach(function(r,i){
+    var tr=document.createElement("tr"); if(i===0)tr.className="best";
+    tr.innerHTML="<td>"+r.name+(i===0?" <b>&larr; best</b>":"")+"</td>"+
+      '<td class="num">'+r.mae.toFixed(2)+" points</td>"+
+      '<td class="num">'+r.worst.toFixed(1)+" points</td>";
+    tb.appendChild(tr);
+  });
+}
+
+function buildAll(){buildSpec();buildEnds();buildParity();buildBench();render();}
+slider.addEventListener("input",render);
+/* A wheel over a range input changes its value, so scrolling past the demo would
+   silently reset the fabric. Scroll the page instead. */
+slider.addEventListener("wheel",function(e){e.preventDefault();window.scrollBy(0,e.deltaY);},
+  {passive:false});
+buildAll();
+/* redraw on theme flip so stroke colours follow the tokens */
+if(window.matchMedia){
+  var mq=window.matchMedia("(prefers-color-scheme: dark)");
+  (mq.addEventListener?mq.addEventListener.bind(mq,"change"):mq.addListener.bind(mq))(buildAll);
+}
+})();
+</script>
+
+</body>
+</html>
