@@ -167,7 +167,7 @@ class _SpectralCNN:
                 loss = lossf(self.net_(xt[idx]), yt[idx])
                 loss.backward()
                 opt.step()
-                tot += float(loss) * len(idx)
+                tot += float(loss.detach()) * len(idx)
             sched.step()
             if self.verbose and ep % 50 == 0:
                 print(f"    cnn epoch {ep:3d}  loss {tot / n:.5f}", flush=True)
