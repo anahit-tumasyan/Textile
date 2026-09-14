@@ -98,7 +98,21 @@ class SimConfig:
     wl_shift_sd: float = 2.0         # wavelength drift (nm)
     nonlinear: float = 0.30          # non-linear mixing term (0 = perfectly linear)
     band_jitter_sd: float = 3.0      # per-sample band-centre jitter (nm), fabric variability
-    dye_tilt_sd: float = 0.12        # broadband slope from colour/dye (mimics dark-fabric drift)
+    dye_tilt_sd: float = 0.12        # broadband slope from colour/dye
+    # --- dark / carbon-black fabric -------------------------------------------
+    # `darkness` is 0 for a light fabric and 1 for a deeply carbon-black one.
+    # A float applies to every sample; a (lo, hi) tuple is sampled per sample.
+    #
+    # WHY THIS IS MODELLED AS ATTENUATION, NOT AN OFFSET: carbon black is a
+    # broadband NIR absorber, so far less light returns to the detector. A pure
+    # additive offset would be removed by SNV/baseline correction in one line and
+    # would make dark fabric look easy. The damaging effect is that the
+    # fibre-specific band CONTRAST is attenuated while detector noise stays at its
+    # absolute level -- signal-to-noise collapses, and no amount of preprocessing
+    # recovers information the detector never captured.
+    darkness: float | tuple = 0.0
+    dark_contrast_loss: float = 0.92  # fraction of band contrast lost at darkness=1
+    dark_offset: float = 0.80         # broadband absorbance added at darkness=1
     seed: int = 42
     rng: np.random.Generator = field(default=None, repr=False)
 
@@ -144,6 +158,12 @@ def simulate_blend(cotton_fraction: float,
 
     f = float(np.clip(cotton_fraction, 0.0, 1.0))
 
+    # Per-sample darkness draw
+    dk = getattr(cfg, "darkness", 0.0)
+    if isinstance(dk, (tuple, list)):
+        dk = float(rng.uniform(dk[0], dk[1]))
+    dk = float(np.clip(dk, 0.0, 1.0))
+
     # --- linear (Beer-Lambert) mixing + small non-linear interaction term ---
     mixed = f * cotton + (1.0 - f) * poly
     if cfg.nonlinear:
@@ -154,6 +174,14 @@ def simulate_blend(cotton_fraction: float,
     # --- broadband dye/colour tilt (mimics dark-fabric absorption drift) ---
     if getattr(cfg, "dye_tilt_sd", 0.0):
         mixed = mixed * (1.0 + rng.normal(0.0, cfg.dye_tilt_sd) * x)
+
+    # --- carbon-black attenuation (dark fabric) ---
+    # Applied BEFORE scatter/baseline/noise, because the physical order matters:
+    # the dye attenuates the light that carries the fibre signature, and the
+    # detector's own noise is then added to that weakened signal.
+    if dk > 0.0:
+        keep = 1.0 - cfg.dark_contrast_loss * dk
+        mixed = mixed * keep + cfg.dark_offset * dk
 
     # --- multiplicative scatter (path-length / particle-size effects) ---
     scatter = 1.0 + rng.normal(0.0, cfg.scatter_sd)
