@@ -6,16 +6,20 @@
     2200.0
   ],
   "baseline_PLS_raw": {
-    "MAE_pp": 3.3774064893399696,
-    "RMSE_pp": 4.458154988073617,
-    "R2": 0.9767695337509598
+    "MAE_pp": 3.3774064893399594,
+    "RMSE_pp": 4.458154988073601,
+    "R2": 0.9767695337509599
   },
-  "best_model": "RF \u00b7 snv+sg1",
+  "best_model": "CNN \u00b7 snv+sg1",
   "best_metrics": {
-    "MAE_pp": 1.6519174717535539,
-    "RMSE_pp": 2.045933439693164,
-    "R2": 0.995107502611788,
-    "max_abs_err_pp": 6.818888291715481
+    "MAE_pp": 1.2951246566723393,
+    "RMSE_pp": 1.660611632821606,
+    "R2": 0.9967768259871962,
+    "max_abs_err_pp": 6.138887341373632
   },
-  "improvement_MAE_pp_vs_baseline": 1.7254890175864157
+  "improvement_MAE_pp_vs_baseline": 2.0822818326676202,
+  "portable_best": {
+    "model": "RF \u00b7 snv+sg1",
+    "MAE_pp": 1.651512719577317
+  }
 }

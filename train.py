@@ -88,7 +88,8 @@ def main():
     # winning preprocessing (RF is ~1000x slower to fit, so we don't grid it).
     pre_methods = ["none", "snv", "sg1", "snv+sg1"]
     rows = []
-    best = None  # (mae, name, model, method, preds)
+    best = None           # (mae, name, model, method, preds)
+    best_portable = None  # same, restricted to models that need no deep-learning stack
 
     def evaluate(kind, pre):
         Xtr = preprocess(Xtr_raw, pre)
@@ -100,14 +101,30 @@ def main():
         rows.append({"model": kind.upper(), "preprocessing": pre, **m})
         print(f"[bench] {name:20s}  MAE={m['MAE_pp']:5.2f}pp  "
               f"RMSE={m['RMSE_pp']:5.2f}pp  R2={m['R2']:.3f}", flush=True)
-        nonlocal best
+        nonlocal best, best_portable
         if best is None or m["MAE_pp"] < best[0]:
             best = (m["MAE_pp"], name, reg, pre, pred)
+        # The CNN is backed by torch, which the base requirements.txt does not
+        # install. Track the best torch-free model separately so predict.py and
+        # any downstream tooling keep working on a plain `pip install -r
+        # requirements.txt` environment.
+        if kind != "cnn" and (best_portable is None or m["MAE_pp"] < best_portable[0]):
+            best_portable = (m["MAE_pp"], name, reg, pre)
         return m
 
     pls_scores = {pre: evaluate("pls", pre)["MAE_pp"] for pre in pre_methods}
     best_pls_pre = min(pls_scores, key=pls_scores.get)
-    evaluate("rf", best_pls_pre)
+
+    # WP2 of the TRL-4 task document asks for PCA / SVM / RandomForest / CNN as
+    # baselines. Each is run on the preprocessing that suits PLS best, so the
+    # comparison isolates the MODEL rather than the signal conditioning.
+    # They are scored with MAE / RMSE / R2, not accuracy / F1: this task predicts
+    # a continuous percentage, and classification metrics do not apply to it.
+    for kind in ("rf", "pcr", "svr", "mlp", "cnn"):
+        try:
+            evaluate(kind, best_pls_pre)
+        except ImportError as exc:
+            print(f"[bench] {kind.upper():20s}  SKIPPED - {exc}", flush=True)
 
     bench = pd.DataFrame(rows).sort_values("MAE_pp").reset_index(drop=True)
     bench.to_csv(os.path.join(args.outdir, "benchmark.csv"), index=False)
@@ -127,11 +144,24 @@ def main():
         "best_metrics": metrics(yte, best_pred),
         "improvement_MAE_pp_vs_baseline": float(base_row.MAE_pp - best_mae),
     }
-    with open(os.path.join(args.outdir, "metrics.json"), "w") as f:
-        json.dump(summary, f, indent=2)
-
     joblib.dump({"model": best_model, "preprocessing": best_pre,
                  "wavelengths": wl}, os.path.join(args.outdir, "best_model.joblib"))
+
+    # Portable copy: loadable without torch. If the overall winner is the CNN,
+    # best_model.joblib REQUIRES torch to unpickle -- predict.py would fail on a
+    # base install without this fallback.
+    if best_portable is not None:
+        pm_mae, pm_name, pm_model, pm_pre = best_portable
+        joblib.dump({"model": pm_model, "preprocessing": pm_pre, "wavelengths": wl},
+                    os.path.join(args.outdir, "best_model_portable.joblib"))
+        summary["portable_best"] = {"model": pm_name, "MAE_pp": float(pm_mae)}
+        if pm_name != best_name:
+            print(f"[note] best overall is {best_name} ({best_mae:.2f}pp) and needs torch; "
+                  f"wrote best_model_portable.joblib = {pm_name} ({pm_mae:.2f}pp) "
+                  f"for torch-free environments.")
+
+    with open(os.path.join(args.outdir, "metrics.json"), "w") as f:
+        json.dump(summary, f, indent=2)
 
     print(f"\n[best] {best_name}: MAE={best_mae:.2f}pp  "
           f"R2={summary['best_metrics']['R2']:.3f}  "
@@ -193,7 +223,13 @@ def main():
     fig, ax = plt.subplots(figsize=(7.5, 4.2))
     piv = bench.pivot(index="preprocessing", columns="model", values="MAE_pp")
     piv = piv.reindex(pre_methods)
-    piv.plot(kind="bar", ax=ax, color={"PLS": POLY, "RF": COT}, width=0.75)
+    # Colour map covers every model the benchmark may contain; an unlisted model
+    # falls back to grey rather than raising, so adding a baseline never breaks
+    # the figure (WP2 added four at once and this line was the only casualty).
+    palette = {"PLS": POLY, "RF": COT, "PCR": "#7f5ea3", "SVR": ACC,
+               "MLP": "#9a9a9a", "CNN": "#b5483f"}
+    piv.plot(kind="bar", ax=ax, width=0.75,
+             color=[palette.get(c, "#9a9a9a") for c in piv.columns])
     ax.set_ylabel("MAE (percentage points)"); ax.set_xlabel("Preprocessing")
     ax.set_title("Preprocessing × model — lower is better")
     ax.tick_params(axis="x", rotation=0); ax.legend(title="")
