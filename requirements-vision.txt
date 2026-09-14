@@ -1,0 +1,10 @@
+# Additional dependencies for the vision branch (src/vision/).
+# The NIR pipeline in src/ does NOT need these -- keep them separate so the
+# original prototype stays installable without a 2 GB torch download.
+#
+# Verified end-to-end on the versions noted. On Kaggle all of these are already
+# in the base image; this file is for local work.
+torch>=2.4           # verified: 2.14.0  (>=2.4 for torch.amp.autocast(device_type=...))
+torchvision>=0.19    # verified: 0.29.0  (ConvNeXt_Tiny_Weights)
+pillow>=10.0         # swatch image loading
+# numpy / scipy / pytest come from requirements.txt
