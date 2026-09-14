@@ -1,0 +1,27 @@
+# Virtual environments — NEVER submit these (machine-specific, ~11,000 files)
+venv/
+.venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS clutter
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# NOTE: results/ IS intentionally committed — the figures, metrics and trained
+# model are part of the deliverable so reviewers can see outputs without
+# running anything.
+
+# Vision-branch training artefacts: hundreds of MB of checkpoints, fully
+# regenerable, and the ones produced so far are simulator smoke-test output
+# rather than deliverables. (Contrast results/ above, which IS committed.)
+results/vision/

@@ -1,0 +1,21 @@
+{
+  "n_samples": 1500,
+  "n_wavelengths": 601,
+  "wavelength_range_nm": [
+    1000.0,
+    2200.0
+  ],
+  "baseline_PLS_raw": {
+    "MAE_pp": 3.3774064893399696,
+    "RMSE_pp": 4.458154988073617,
+    "R2": 0.9767695337509598
+  },
+  "best_model": "RF \u00b7 snv+sg1",
+  "best_metrics": {
+    "MAE_pp": 1.6519174717535539,
+    "RMSE_pp": 2.045933439693164,
+    "R2": 0.995107502611788,
+    "max_abs_err_pp": 6.818888291715481
+  },
+  "improvement_MAE_pp_vs_baseline": 1.7254890175864157
+}
